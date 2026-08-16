@@ -1,0 +1,760 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f3a2f"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest"><title>Backwoods Planner Co. — Property Map</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eeeae1;color:#20231e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:82px}
+header{height:68px;background:#2f3a2f;color:#f3efe5;display:flex;align-items:center;padding:8px 15px;gap:10px;position:sticky;top:0;z-index:5}
+header img{width:48px;height:48px;object-fit:cover;border-radius:50%}header b{font-size:15px;letter-spacing:1.4px}header small{display:block;color:#c7b98f;letter-spacing:1px}
+main{max-width:850px;margin:auto;padding:16px}.screen{display:none}.screen.active{display:block}
+.hero{background:linear-gradient(135deg,#2f3a2f,#485440);color:#f3efe5;border-radius:22px;padding:25px;min-height:205px;display:flex;align-items:end}
+.hero h1{font:34px Georgia,serif;margin:0 0 8px}.hero p{margin:0;line-height:1.45;color:#e6e1d5}.eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:#86754d;margin:0 0 6px}.hero .eyebrow{color:#c7b98f}
+h2{font:21px Georgia,serif;margin:23px 0 10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.tile,.card,button,input,textarea{border:1px solid #d7d0c1;border-radius:13px;background:#fff}.tile{padding:16px;text-align:left;font-weight:800;color:#2f3a2f}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{background:#fff;border:1px solid #d7d0c1;border-radius:14px;padding:13px 5px;text-align:center}.stat b{font:24px Georgia,serif;display:block;color:#2f3a2f}.stat span{font-size:9px;color:#6f756c;text-transform:uppercase}
+.card{padding:15px;margin-top:9px}.page{display:flex;align-items:center;gap:7px;margin-bottom:14px}.back{background:none;border:0;font-size:30px;color:#2f3a2f}.page h1{font:28px Georgia,serif;margin:0}.form{display:grid;gap:11px}.form label{font-size:12px;font-weight:800;color:#5a6057}.form input,.form textarea{display:block;width:100%;padding:13px;margin-top:5px;font:inherit}.form textarea{min-height:85px}.primary{background:#2f3a2f;color:#f3efe5;border:0;padding:15px;font-weight:800}.list{display:grid;gap:8px;margin-top:15px}.row{background:#fff;border:1px solid #d7d0c1;border-radius:13px;padding:13px}.row b{display:block;font-family:Georgia,serif}.row small{color:#6f756c}.danger{color:#8a3e2f!important}
+nav{position:fixed;bottom:0;left:0;right:0;height:74px;background:#fff;border-top:1px solid #d7d0c1;display:grid;grid-template-columns:repeat(5,1fr);z-index:10}nav button{border:0;border-radius:0;background:none;color:#70766d;font-size:10px;font-weight:800}nav button span{display:block;font-size:20px;margin-bottom:3px}nav button.active{color:#2f3a2f}
+#toast{position:fixed;bottom:90px;left:50%;transform:translate(-50%,20px);background:#2f3a2f;color:#fff;padding:10px 15px;border-radius:30px;opacity:0;transition:.2s;z-index:20}#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}main{padding:25px}.form{grid-template-columns:1fr 1fr}.form .wide{grid-column:1/-1}.primary{grid-column:1/-1}}
+
+/* Backwoods Planner V2 family */
+.bwmap{height:420px;background:#dfe6db;border:1px solid #d7d0c1;border-radius:16px;overflow:hidden;position:relative;touch-action:none}
+.bwmap .tiles{position:absolute;inset:0;background:#dfe6db}
+.bwmap .tileimg{position:absolute;width:256px;height:256px;object-fit:cover;user-select:none;pointer-events:none}
+.bwmap .overlay{position:absolute;inset:0}
+.bwmap .pin{position:absolute;transform:translate(-50%,-100%);font-size:27px;line-height:1;filter:drop-shadow(0 1px 1px #fff);cursor:pointer;z-index:4}
+.bwmap .boundary{position:absolute;inset:12px;border:3px dashed #2f3a2f;border-radius:18px;pointer-events:none;z-index:3}
+.bwmap .route{position:absolute;left:8%;right:8%;top:50%;height:4px;background:#2f3a2f;transform:rotate(-12deg);opacity:.75;z-index:2}
+.bwmap .parcel{position:absolute;border:2px solid #8b7440;background:rgba(199,185,143,.16);z-index:1;pointer-events:none}
+.bwtools{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}
+.bwtools button{padding:10px 11px;border:1px solid #d7d0c1;border-radius:10px;background:#fff;font-weight:800;color:#2f3a2f}
+.bwtools button.primary{background:#2f3a2f;color:#f3efe5}
+.bwgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bwcard{background:#fff;border:1px solid #d7d0c1;border-radius:13px;padding:12px}
+.bwcard b{display:block;margin-bottom:5px}
+.bwlist{display:grid;gap:7px;margin-top:9px}
+.bwrow{background:#fff;border:1px solid #d7d0c1;border-radius:11px;padding:10px}
+.bwmuted{font-size:12px;color:#6f756c}
+.bwscore{font:25px Georgia,serif;color:#2f3a2f}
+@media(max-width:520px){.bwgrid{grid-template-columns:1fr}}
+
+</style>
+
+
+
+
+
+
+<style id="bw-layer-map-css">
+main:has(#property.active){max-width:none!important;margin:0!important;padding:0!important}
+#property.active{display:block!important;position:fixed!important;left:0;right:0;top:68px;bottom:74px;z-index:4;padding:0!important;margin:0!important;background:#dfe6db}
+#bwPropertyMapOnly,#bwMapViewport{position:absolute;inset:0;overflow:hidden;background:#dfe6db}
+#bwMapViewport{touch-action:none}
+#bwMapTiles,#bwMapOverlay,#bwMapVector{position:absolute;inset:0}
+#bwMapVector{width:100%;height:100%;pointer-events:none;overflow:visible}
+.bwMapTile{position:absolute;width:256px;height:256px;display:block;user-select:none;pointer-events:none}
+#bwMapLoading{position:absolute;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(31,42,34,.94);color:#fff;border-radius:14px;padding:14px 18px;text-align:center;display:grid;gap:5px;min-width:170px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+#bwMapLoading small{opacity:.8}
+.bwMapSpinner{width:22px;height:22px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:bwspin .8s linear infinite;margin:auto}
+@keyframes bwspin{to{transform:rotate(360deg)}}
+#bwMapAttribution{position:absolute;z-index:20;right:5px;bottom:4px;background:rgba(255,255,255,.78);font-size:9px;padding:2px 4px;color:#333}
+#bwMapTopControls{position:absolute;z-index:30;right:10px;top:10px;display:flex;gap:6px}
+#bwMapTopControls button,#bwMapZoomControls button{width:42px;height:42px;border:0;border-radius:11px;background:rgba(31,42,34,.92);color:#fff;font-size:21px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#bwMapZoomControls{position:absolute;z-index:30;right:10px;top:64px;display:grid;gap:6px}
+#bwMapZoomControls button{font-size:27px}
+#bwMapLayerPanel{position:absolute;z-index:60;right:10px;top:60px;background:rgba(255,255,255,.98);border:1px solid #d3ccbd;border-radius:13px;padding:12px;width:210px;box-shadow:0 8px 24px rgba(0,0,0,.2);color:#273127}
+#bwMapLayerPanel b{display:block;font-size:11px;letter-spacing:.1em;margin-bottom:5px}
+#bwMapLayerPanel label{display:block;padding:8px 0;font-size:14px}
+#bwMapTools{position:absolute;z-index:70;left:10px;bottom:48px;display:flex;gap:6px;overflow:visible;max-width:calc(100% - 20px)}
+#bwMapTools button{border:0;border-radius:10px;background:rgba(31,42,34,.94);color:#fff;padding:10px 12px;font-weight:900;white-space:nowrap}
+#bwMapStatus{position:absolute;z-index:20;left:10px;top:10px;background:rgba(255,255,255,.92);color:#273127;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+#bwMapHint{position:absolute;z-index:20;left:10px;bottom:10px;background:rgba(255,255,255,.9);color:#273127;border-radius:9px;padding:7px 10px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.bwPropertyPin{position:absolute;transform:translate(-50%,-100%);font-size:28px;line-height:1;pointer-events:auto;cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.bwPropertyPin span{position:absolute;left:50%;top:100%;transform:translate(-50%,3px);background:rgba(255,255,255,.94);padding:2px 5px;border-radius:6px;font-size:10px;font-weight:800;color:#273127;white-space:nowrap}
+.bwGpsDot{position:absolute;width:17px;height:17px;border-radius:50%;background:#2875e6;border:3px solid #fff;box-shadow:0 1px 7px rgba(0,0,0,.35);transform:translate(-50%,-50%);pointer-events:none}
+.bwParcelPoly{fill:rgba(120,120,120,.04);stroke:rgba(70,70,70,.72);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:auto}
+.bwParcelPoly:hover{fill:rgba(47,58,47,.16);stroke:#263127;stroke-width:2}
+.bwBoundaryPoly{fill:rgba(47,58,47,.10);stroke:#263127;stroke-width:3;vector-effect:non-scaling-stroke}
+.bwRouteLine{fill:none;stroke:#263127;stroke-width:4;stroke-dasharray:10 7;vector-effect:non-scaling-stroke}
+.bwDraftLine{fill:none;stroke:#8b7440;stroke-width:3;stroke-dasharray:7 6;vector-effect:non-scaling-stroke}
+@media(max-width:600px){#property.active{top:0;bottom:74px}}
+</style>
+
+<style id="bw-v4-parcel-css">
+#bwParcelPanel{position:absolute;z-index:80;left:12px;right:12px;bottom:78px;max-width:390px;background:rgba(255,255,255,.98);border:1px solid #d3ccbd;border-radius:14px;padding:13px;color:#273127;box-shadow:0 10px 30px rgba(0,0,0,.24)}
+.bwParcelPanelHead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bwParcelPanelHead b{flex:1;font-size:12px;letter-spacing:.08em}
+#bwParcelClose{border:0;background:#eee9df;border-radius:8px;width:30px;height:30px;font-size:20px}
+#bwParcelDetails{font-size:13px;line-height:1.45}
+.bwParcelRow{display:flex;justify-content:space-between;border-bottom:1px solid #eee8dd;padding:5px 0;gap:12px}
+.bwParcelRow span:last-child{font-weight:800;text-align:right}
+.bwParcelActions{display:flex;gap:7px;margin-top:10px}
+.bwParcelActions button{border:0;border-radius:9px;padding:9px 10px;font-weight:900;background:#273127;color:#fff}
+#bwParcelRemove{display:none}
+#bwMyPropertyPanel{position:absolute;z-index:50;left:10px;top:48px;background:rgba(255,255,255,.95);border-radius:10px;padding:7px 9px;color:#273127;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+#bwMyPropertyPanel b{display:block;font-size:10px;letter-spacing:.08em}
+#bwMyPropertyPanel span{display:block;margin:2px 0 5px}
+#bwClearProperty{border:0;border-radius:7px;padding:5px 7px;background:#eee9df;font-size:10px;font-weight:800}
+.bwSelectedParcel{fill:rgba(47,58,47,.22)!important;stroke:#273127!important;stroke-width:3!important}
+@media(max-width:600px){#bwParcelPanel{left:8px;right:8px;bottom:82px}.bwParcelActions{flex-direction:column}}
+</style>
+<style id="bw-v5-fixes-css">
+.bwSelectedParcel{fill:rgba(245,140,25,.18)!important;stroke:#f08a16!important;stroke-width:4!important;vector-effect:non-scaling-stroke}
+.bwParcelPoly{cursor:pointer}
+#bwParcelPanel{z-index:90}
+</style>
+<style id="bw-v5-2-ui-css">
+.bwAddWrap{position:relative;display:block}
+.bwAddMenu{position:absolute;left:0;bottom:calc(100% + 7px);min-width:185px;background:rgba(255,255,255,.98);border:1px solid #d3ccbd;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:100;display:grid;gap:3px}
+.bwAddMenu[hidden]{display:none}
+.bwAddMenu button{background:#fff!important;color:#273127!important;text-align:left;border:0;border-radius:8px;padding:9px 10px;font-weight:900;font-size:12px}
+.bwAddMenu button:hover{background:#eee9df!important}
+.bwPropertyPin{width:18px;height:24px;font-size:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.bwPropertyPin:before{content:"";position:absolute;left:2px;top:1px;width:14px;height:14px;border-radius:50% 50% 50% 0;background:#273127;transform:rotate(-45deg)}
+.bwPropertyPin:after{content:"";position:absolute;left:7px;top:6px;width:4px;height:4px;border-radius:50%;background:#fff}
+.bwPropertyPin span{top:25px}
+#propertySummary.bwPropertySummary{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bwPropertySummaryMain{min-width:0}
+.bwPropertySummaryTitle{font-weight:900}
+.bwPropertySummaryMeta{font-size:12px;color:#6f756c;margin-top:3px}
+.bwPropertySummaryBtn{border:0;border-radius:9px;background:#273127;color:#fff;padding:8px 10px;font-weight:900;white-space:nowrap}
+</style>
+<style id="bw-v5-3-map-css">
+#bwMapViewport{min-height:300px}
+#bwMapTiles{background:#dfe6db}
+</style>
+<style id="bw-v5-4-pin-placement-css">
+#bwAddMenu{z-index:200}
+#bwPinPlacement{position:absolute;inset:0;z-index:75;pointer-events:none}
+#bwPinPlacement[hidden]{display:none}
+.bwPinCrosshair{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);width:44px;height:58px;display:flex;justify-content:center;align-items:flex-start;pointer-events:none}
+.bwDropPin{position:relative;margin-top:0;width:30px;height:30px;border-radius:50% 50% 50% 0;background:#273127;transform:rotate(-45deg);filter:drop-shadow(0 3px 5px rgba(0,0,0,.38))}
+.bwDropPin:after{content:"";position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;left:10px;top:10px}
+.bwPinCrosshair:after{content:"";position:absolute;left:50%;top:31px;width:2px;height:22px;background:rgba(39,49,39,.7);transform:translateX(-50%)}
+.bwPinPlacementCard{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);width:min(360px,calc(100% - 28px));background:rgba(255,255,255,.98);border:1px solid #d3ccbd;border-radius:14px;padding:11px 12px;box-shadow:0 10px 30px rgba(0,0,0,.25);color:#273127;pointer-events:auto}
+.bwPinPlacementCard b{display:block;font-size:13px;margin-bottom:3px}
+.bwPinPlacementCard small{display:block;color:#6f756c;font-size:11px;margin-bottom:9px}
+.bwPinPlacementCard>div{display:flex;justify-content:flex-end;gap:7px}
+.bwPinPlacementCard button{border:0;border-radius:9px;padding:9px 12px;font-weight:900}
+#bwPinCancel{background:#eee9df;color:#273127}
+#bwPinPlace{background:#273127;color:#fff}
+.bwAddMenu button{display:flex;align-items:center;gap:8px}
+.bwMenuPin{width:16px;height:16px;display:inline-block;position:relative;flex:0 0 16px}
+.bwMenuPin:before{content:"";position:absolute;left:1px;top:0;width:13px;height:13px;border-radius:50% 50% 50% 0;background:#273127;transform:rotate(-45deg)}
+.bwMenuPin:after{content:"";position:absolute;left:6px;top:5px;width:4px;height:4px;border-radius:50%;background:#fff}
+</style>
+</head><body>
+<header><img id="brandLogo" alt="Backwoods Planner Co."><div><b>BACKWOODS</b><small>PLANNER CO.</small></div></header>
+<main>
+<section id="home" class="screen active">
+<div class="hero"><div><p class="eyebrow">PLAN • TRACK • HUNT</p><h1>Your Property.<br>Your Season.</h1><p>Everything you need to keep your whitetail hunting data organized in the field.</p></div></div>
+<h2>Quick Actions</h2><div class="grid">
+<button class="tile" data-open="hunt">＋ Log Hunt</button><button class="tile" data-open="sighting">＋ Deer Sighting</button>
+<button class="tile" data-open="camera">＋ Camera Check</button><button class="tile" data-open="buck">＋ Target Buck</button>
+</div>
+<h2>Season Snapshot</h2><div class="stats"><div class="stat"><b id="nh">0</b><span>Hunts</span></div><div class="stat"><b id="ns">0</b><span>Sightings</span></div><div class="stat"><b id="nc">0</b><span>Camera Checks</span></div><div class="stat"><b id="nb">0</b><span>Target Bucks</span></div></div>
+<h2>Property</h2><div class="card" id="propertySummary">No property set up yet.</div>
+<h2>Recent Activity</h2><div id="recent" class="list"><div class="card">Your field records will appear here.</div></div>
+</section>
+
+
+
+<section id="property" class="screen">
+  <div id="bwPropertyMapOnly">
+    <div id="bwMapViewport">
+<div id="bwPinPlacement" hidden>
+  <div class="bwPinCrosshair"><div class="bwDropPin"></div></div>
+  <div class="bwPinPlacementCard">
+    <b id="bwPinPlacementTitle">Place Location</b>
+    <small>Move the map until the pin is exactly where you want it.</small>
+    <div>
+      <button type="button" id="bwPinCancel">Cancel</button>
+      <button type="button" id="bwPinPlace">Place Pin</button>
+    </div>
+  </div>
+</div>
+
+      <div id="bwMapTiles"></div>
+      <svg id="bwMapVector" aria-label="Map data layers"></svg>
+      <div id="bwMapOverlay"></div>
+
+      <div id="bwMapLoading">
+        <div class="bwMapSpinner"></div>
+        <b>Loading map…</b>
+        <small>Connecting to map tiles</small>
+      </div>
+
+      <div id="bwMapAttribution">© OpenStreetMap contributors • Parcel data: PASDA</div>
+
+      <div id="bwMapTopControls">
+        <button type="button" id="bwMapLocate" title="My location">◎</button>
+        <button type="button" id="bwMapLayers" title="Layers">☷</button>
+      </div>
+
+      <div id="bwMapZoomControls">
+        <button type="button" id="bwMapZoomIn">+</button>
+        <button type="button" id="bwMapZoomOut">−</button>
+      </div>
+
+      <div id="bwMapLayerPanel" hidden>
+        <b>MAP LAYERS</b>
+        <label><input type="radio" name="bwBase" id="bwRoad" checked> Road</label>
+        <label><input type="radio" name="bwBase" id="bwTopo"> Topographic</label>
+        <label><input type="radio" name="bwBase" id="bwSatellite"> Satellite</label>
+        <label><input type="checkbox" id="bwShowParcels"> Parcels</label>
+        <label><input type="checkbox" id="bwShowPins" checked> Hunting locations</label>
+        <label><input type="checkbox" id="bwShowBoundary" checked> My property boundary</label>
+        <label><input type="checkbox" id="bwShowRoutes" checked> Access routes</label>
+      </div>
+
+      <div id="bwMapTools">
+        <div class="bwAddWrap">
+          <button type="button" id="bwToolPin">📍 Add</button>
+          <div id="bwAddMenu" class="bwAddMenu" hidden>
+            <button type="button" data-add-type="Stand"><span class="bwMenuPin"></span>Stand</button>
+            <button type="button" data-add-type="Camera"><span class="bwMenuPin"></span>Camera</button>
+            <button type="button" data-add-type="Bedding"><span class="bwMenuPin"></span>Bedding</button>
+            <button type="button" data-add-type="Food"><span class="bwMenuPin"></span>Food</button>
+            <button type="button" data-add-type="Water"><span class="bwMenuPin"></span>Water</button>
+            <button type="button" data-add-type="Scrape"><span class="bwMenuPin"></span>Scrape</button>
+            <button type="button" data-add-type="Rub"><span class="bwMenuPin"></span>Rub</button>
+            <button type="button" data-add-type="Access"><span class="bwMenuPin"></span>Access Point</button>
+            <button type="button" data-add-type="Parking"><span class="bwMenuPin"></span>Parking</button>
+            <button type="button" data-add-type="Danger"><span class="bwMenuPin"></span>Danger</button>
+          </div>
+        </div>
+        <button type="button" id="bwToolBoundary">▱ Property</button>
+        <button type="button" id="bwToolRoute">🥾 Access</button>
+        <button type="button" id="bwToolFinish" hidden>✓ Save</button>
+        <button type="button" id="bwToolUndo" hidden>↶</button>
+      </div>
+
+      <div id="bwMapStatus">Pennsylvania • Zoom 7</div>
+      <div id="bwMapHint">Drag to move • pinch, wheel or +/− to zoom</div>
+      <div id="bwParcelPanel" hidden>
+        <div class="bwParcelPanelHead">
+          <b id="bwParcelTitle">PARCEL</b>
+          <button type="button" id="bwParcelClose">×</button>
+        </div>
+        <div id="bwParcelDetails"></div>
+        <div class="bwParcelActions">
+          <button type="button" id="bwParcelAdd">＋ Add to My Property</button>
+          <button type="button" id="bwParcelRemove">− Remove from My Property</button>
+        </div>
+      </div>
+      <div id="bwMyPropertyPanel" hidden>
+        <b>MY PROPERTY</b>
+        <span id="bwMyPropertyCount">0 parcels</span>
+        <button type="button" id="bwClearProperty">Clear Property</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+
+<section id="hunt" class="screen"><FormTitle title="Daily Hunt" eyebrow="HUNT"></FormTitle><form class="form" data-type="hunt">
+<label>Date<input name="date" type="date"></label><label>Stand<input name="stand"></label><label>Time In<input name="in" type="time"></label><label>Time Out<input name="out" type="time"></label><label>Wind<input name="wind"></label><label>Temperature<input name="temp"></label><label>Weather<input name="weather"></label><label>Target Deer<input name="target"></label><label class="wide">Notes<textarea name="notes"></textarea></label><button class="primary">Save Hunt</button></form></section>
+
+<section id="sighting" class="screen"><FormTitle title="Deer Sighting" eyebrow="SCOUT"></FormTitle><form class="form" data-type="sighting">
+<label>Date<input name="date" type="date"></label><label>Time<input name="time" type="time"></label><label>Location<input name="location"></label><label>Bucks<input name="bucks" type="number"></label><label>Does<input name="does" type="number"></label><label>Fawns<input name="fawns" type="number"></label><label>Direction<input name="direction"></label><label class="wide">Behavior / Notes<textarea name="notes"></textarea></label><button class="primary">Save Sighting</button></form></section>
+
+<section id="camera" class="screen"><FormTitle title="Trail Camera Check" eyebrow="SCOUT"></FormTitle><form class="form" data-type="camera">
+<label>Date<input name="date" type="date"></label><label>Camera ID<input name="id" placeholder="CAM-01"></label><label>Location<input name="location"></label><label>Photos<input name="photos" type="number"></label><label>Bucks<input name="bucks" type="number"></label><label>Does<input name="does" type="number"></label><label>Fawns<input name="fawns" type="number"></label><label>Wind / Weather<input name="weather"></label><label class="wide">Patterns / Action Needed<textarea name="notes"></textarea></label><button class="primary">Save Camera Check</button></form></section>
+
+<section id="buck" class="screen"><FormTitle title="Target Buck" eyebrow="BUCKS"></FormTitle><form class="form" data-type="buck">
+<label>Nickname / ID<input name="name" placeholder="The Wide 10"></label><label>First Seen<input name="first" type="date"></label><label>Primary Area<input name="area"></label><label>Estimated Age<input name="age"></label><label class="wide">Antler Notes<textarea name="antler"></textarea></label><label class="wide">Travel / Bedding / Food<textarea name="pattern"></textarea></label><label class="wide">Notes<textarea name="notes"></textarea></label><button class="primary">Save Target Buck</button></form></section>
+
+<section id="more" class="screen"><div class="page"><button class="back" data-home>‹</button><div><p class="eyebrow">BACKWOODS</p><h1>Planner Library</h1></div></div>
+<div class="grid">
+<button class="tile" data-open="property">Property</button><button class="tile" data-open="stands">Stands</button><button class="tile" data-open="cameras">Cameras</button><button class="tile" data-open="food">Food Plots</button><button class="tile" data-open="rut">Rut Tracker</button><button class="tile" data-open="harvest">Harvest</button><button class="tile" data-open="review">Season Review</button>
+</div><h2>Data</h2><button class="tile" id="export">Export Backup</button><label class="tile" style="display:block;margin-top:9px;text-align:center">Import Backup<input id="import" type="file" accept="application/json" style="display:none"></label><button class="tile danger" id="clear" style="margin-top:9px">Clear All Data</button></section>
+
+<section id="stands" class="screen"><FormTitle title="Stand Inventory" eyebrow="PROPERTY"></FormTitle><form class="form" data-type="stand"><label>Stand Name<input name="name"></label><label>Location<input name="location"></label><label>Primary Wind<input name="wind"></label><label>Best Season<input name="season"></label><label class="wide">Entry / Exit Route<textarea name="route"></textarea></label><button class="primary">Save Stand</button></form><div id="standList" class="list"></div></section>
+<section id="cameras" class="screen"><FormTitle title="Camera Inventory" eyebrow="PROPERTY"></FormTitle><form class="form" data-type="cameraInventory"><label>Camera ID<input name="id"></label><label>Location<input name="location"></label><label>Deployed<input name="date" type="date"></label><label>Status<input name="status"></label><label class="wide">Purpose / Notes<textarea name="notes"></textarea></label><button class="primary">Save Camera</button></form><div id="cameraList" class="list"></div></section>
+<section id="food" class="screen"><FormTitle title="Food Plot Planner" eyebrow="HABITAT"></FormTitle><form class="form" data-type="food"><label>Plot Name<input name="name"></label><label>Acres<input name="acres" type="number" step=".1"></label><label>Crop / Mix<input name="crop"></label><label>Planting Date<input name="date" type="date"></label><label class="wide">Soil / Maintenance / Deer Use<textarea name="notes"></textarea></label><button class="primary">Save Food Plot</button></form></section>
+<section id="rut" class="screen"><FormTitle title="Rut Observation" eyebrow="SCOUT"></FormTitle><form class="form" data-type="rut"><label>Date<input name="date" type="date"></label><label>Location<input name="location"></label><label>Rut Stage<input name="stage"></label><label>Wind<input name="wind"></label><label class="wide">Activity / Movement<textarea name="notes"></textarea></label><button class="primary">Save Observation</button></form></section>
+<section id="harvest" class="screen"><FormTitle title="Harvest Record" eyebrow="HUNT"></FormTitle><form class="form" data-type="harvest"><label>Date<input name="date" type="date"></label><label>Location<input name="location"></label><label>Weapon<input name="weapon"></label><label>Animal<input name="animal"></label><label class="wide">Antler / Field Notes<textarea name="notes"></textarea></label><button class="primary">Save Harvest</button></form></section>
+<section id="review" class="screen"><FormTitle title="Season Review" eyebrow="REVIEW"></FormTitle><form class="form" data-type="review"><label class="wide">Best Decision<textarea name="best"></textarea></label><label class="wide">Biggest Lesson<textarea name="lesson"></textarea></label><label class="wide">Next Season Priorities<textarea name="next"></textarea></label><button class="primary">Save Review</button></form></section>
+
+<section id="map" class="screen">
+  <div class="page"><button class="back" data-home>‹</button><div><p class="eyebrow">PROPERTY</p><h1>Hunt Map</h1></div></div>
+
+  <div class="card">
+    <b>Hunting Map</b>
+    <p class="bwmuted">Use the map to place stands, cameras, bedding, food, water, access and other field locations. The map can use your current GPS position when your browser grants permission.</p>
+    <div class="bwtools">
+      <button id="bwLocate">📍 GPS</button>
+      <button id="bwAddPin" class="primary">＋ Add Location</button>
+      <button id="bwBoundary">▱ Property Boundary</button>
+      <button id="bwRoute">🥾 Access Route</button>
+      <button id="bwClearMap">Clear Map Data</button>
+    </div>
+    <div id="bwMap" class="bwmap">
+      <div id="bwTiles" class="tiles"></div>
+      <div id="bwParcelOverlay" class="overlay"></div>
+      <div id="bwOverlay" class="overlay"></div>
+    </div>
+    <p id="bwMapStatus" class="bwmuted">Map ready. Add a location or use GPS.</p>
+  </div>
+
+  <div class="card">
+    <b>Map Display</b>
+    <div class="bwtools">
+      <button id="bwMapRoad">Road Map</button>
+      <button id="bwMapSatellite">Satellite</button>
+      <button id="bwMapReset">Reset View</button><button id="bwLoadParcel">▱ Load Parcels</button>
+    </div>
+    <div id="bwParcelInfo" class="bwmuted">Tap “Load Parcels” to test the public Pennsylvania parcel service.</div>
+  </div>
+
+  <div class="card">
+    <b>🎯 Hunt Intelligence — V2.3</b>
+    <div class="bwgrid">
+      <div class="bwcard">
+        <b>Wind</b>
+        <select id="bwWind"><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option selected>W</option><option>NW</option></select>
+      </div>
+      <div class="bwcard">
+        <b>Wind Speed</b>
+        <input id="bwWindSpeed" type="range" min="0" max="30" value="8" style="width:100%">
+        <span id="bwWindSpeedText">8 mph</span>
+      </div>
+      <div class="bwcard">
+        <b>Thermals</b>
+        <select id="bwThermal"><option value="neutral">Neutral</option><option value="rise">Morning: rising</option><option value="fall">Evening: falling</option></select>
+      </div>
+      <div class="bwcard">
+        <b>Best Stand Today</b>
+        <div id="bwBestStand" class="bwscore">—</div>
+      </div>
+    </div>
+    <button id="bwAnalyze" class="primary" style="width:100%;margin-top:9px">Analyze Stands</button>
+    <p id="bwAnalysis" class="bwmuted">Add stands and field features to calculate a planning score.</p>
+  </div>
+
+  <div class="card">
+    <b>Saved Locations</b>
+    <div id="bwLocationList" class="bwlist"></div>
+  </div>
+</section>
+
+</main>
+<nav><button data-home class="active"><span>⌂</span>Home</button><button data-open="property"><span>▣</span>Property</button><button data-open="hunt"><span>＋</span>Hunt</button><button data-open="buck"><span>◆</span>Bucks</button><button data-open="more"><span>☰</span>More</button></nav><div id="toast"></div>
+<script>
+const K="backwoods-v1"; let d=JSON.parse(localStorage.getItem(K)||"null")||{property:{},hunt:[],sighting:[],camera:[],buck:[],stand:[],cameraInventory:[],food:[],rut:[],harvest:[],review:{}};
+const $=s=>document.querySelector(s); const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function save(msg="Saved"){localStorage.setItem(K,JSON.stringify(d));render();toast(msg)}
+function toast(t){let x=$("#toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1500)}
+function open(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$("#"+id).classList.add("active");window.scrollTo(0,0);document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"))}
+document.addEventListener("click",e=>{let b=e.target.closest("[data-open]");if(b)open(b.dataset.open);if(e.target.closest("[data-home]"))open("home")});
+document.querySelectorAll("form[data-type]").forEach(f=>f.onsubmit=e=>{e.preventDefault();let type=f.dataset.type,v=Object.fromEntries(new FormData(f));if(type==="property"||type==="review")d[type]=v;else{if(!d[type])d[type]=[];d[type].unshift({id:Date.now(),created:new Date().toISOString(),...v})}f.reset();save();if(type==="property")open("home")});
+function render(){ $("#nh").textContent=d.hunt.length;$("#ns").textContent=d.sighting.length;$("#nc").textContent=d.camera.length;$("#nb").textContent=d.buck.length;
+$("#propertySummary").innerHTML=d.property.name?`<b>${esc(d.property.name)}</b><br>${esc(d.property.location||"")}${d.property.acres?` • ${esc(d.property.acres)} acres`:""}<p>${esc(d.property.goal||"")}</p>`:"No property set up yet.";
+let a=[];["hunt","sighting","camera","buck","harvest"].forEach(k=>(d[k]||[]).slice(0,3).forEach(x=>a.push({k,x})));a.sort((a,b)=>(b.x.created||"").localeCompare(a.x.created||""));$("#recent").innerHTML=a.length?a.slice(0,6).map(o=>`<div class="row"><b>${o.k==="hunt"?"Hunt":o.k==="sighting"?"Deer Sighting":o.k==="camera"?"Camera Check":o.k==="buck"?"Target Buck":"Harvest"}</b><small>${esc(o.x.name||o.x.id||o.x.location||o.x.date||"Saved")}</small></div>`).join(""):"<div class='card'>Your field records will appear here.</div>";
+list("stand","standList","name");list("cameraInventory","cameraList","id")}
+function list(type,id,key){let el=$("#"+id);if(!el)return;el.innerHTML=(d[type]||[]).map(x=>`<div class="row"><b>${esc(x[key]||"Record")}</b><small>${esc(x.location||x.date||"")}</small></div>`).join("")||"<div class='card'>Nothing saved yet.</div>"}
+$("#export").onclick=()=>{let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"}));a.download="backwoods-planner-backup.json";a.click();toast("Backup exported")}
+$("#import").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{d=JSON.parse(r.result);save("Backup imported")}catch{toast("Invalid backup")}};r.readAsText(f)}
+$("#clear").onclick=()=>{if(confirm("Delete all app data on this device?")){localStorage.removeItem(K);location.reload()}}
+function FormTitle(){} customElements.define("form-title",FormTitle);
+document.querySelectorAll("form-title").forEach(el=>{let p=el.parentElement.querySelector("form");let div=document.createElement("div");div.className="page";div.innerHTML=`<button class="back" data-home>‹</button><div><p class="eyebrow">${el.getAttribute("eyebrow")}</p><h1>${el.getAttribute("title")}</h1></div>`;el.replaceWith(div)})
+const img=$("#brandLogo"); if(img.src && !img.complete){} else {img.src="backwoods-brand.png"}
+render();
+
+/* Backwoods V5.2 property/map bridge */
+(function(){
+  const MAPKEY="backwoods-planner-map-v5";
+  function readMap(){
+    try{
+      const m=JSON.parse(localStorage.getItem(MAPKEY)||"{}");
+      m.myParcels=m.myParcels||[];
+      m.pins=m.pins||[];
+      return m;
+    }catch(e){return {myParcels:[],pins:[]}}
+  }
+  function updatePropertySummary(){
+    const el=document.querySelector("#propertySummary");
+    if(!el)return;
+    const m=readMap(), parcels=m.myParcels||[];
+    if(!parcels.length){
+      el.className="card";
+      el.textContent="No property set up yet.";
+      return;
+    }
+    const first=parcels[0]||{};
+    const pin=first.PIN||"Property";
+    el.className="card bwPropertySummary";
+    el.innerHTML=
+      '<div class="bwPropertySummaryMain">'+
+      '<div class="bwPropertySummaryTitle">My Property</div>'+
+      '<div class="bwPropertySummaryMeta">'+
+      parcels.length+' parcel'+(parcels.length===1?'':'s')+
+      ' • Parcel '+String(pin)+'</div></div>'+
+      '<button type="button" class="bwPropertySummaryBtn" data-open="property">Open Map</button>';
+    el.querySelector("button").addEventListener("click",function(e){
+      e.stopPropagation();
+      document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+      const p=document.querySelector("#property"); if(p)p.classList.add("active");
+      window.scrollTo(0,0);
+      window.dispatchEvent(new Event("resize"));
+    });
+  }
+  window.bwRefreshPropertySummary=updatePropertySummary;
+  window.addEventListener("storage",function(e){if(e.key===MAPKEY)updatePropertySummary()});
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)updatePropertySummary()});
+  setTimeout(updatePropertySummary,150);
+  setInterval(updatePropertySummary,1000);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script id="bw-layer-map-engine">
+(function(){
+"use strict";
+const KEY="backwoods-planner-map-v5";
+const DEFAULT={center:{lat:41.2033,lng:-77.1945},zoom:7,base:"road",pins:[],boundary:[],routes:[],gps:null,parcelGeo:null,myParcels:[]};
+let S=DEFAULT;
+try{S=Object.assign({},DEFAULT,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+S.center=S.center||DEFAULT.center;S.pins=S.pins||[];S.boundary=S.boundary||[];S.routes=S.routes||[];S.myParcels=S.myParcels||[];S.zoom=Number(S.zoom)||7;
+
+const $=s=>document.querySelector(s);
+const V=$("#bwMapViewport"),T=$("#bwMapTiles"),G=$("#bwMapVector"),O=$("#bwMapOverlay"),L=$("#bwMapLoading");
+if(!V||!T||!G||!O){console.error("Backwoods Planner map: required map elements missing");return}
+
+let tool="browse",pendingPinType="",placingPin=false,drawing=[],dragging=false,moved=false,downX=0,downY=0,selected=null,parcelTimer=null;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const N=z=>Math.pow(2,z);
+const X=(lon,z)=>(lon+180)/360*N(z);
+const Y=(lat,z)=>(1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*N(z);
+const LON=(x,z)=>x/N(z)*360-180;
+const LAT=(y,z)=>Math.atan(Math.sinh(Math.PI*(1-2*y/N(z))))*180/Math.PI;
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(S));
+  if(window.bwRefreshPropertySummary)window.bwRefreshPropertySummary();
+}
+function hint(t){const h=$("#bwMapHint");if(h)h.textContent=t}
+function screenPoint(lat,lng){
+  const r=V.getBoundingClientRect(),z=S.zoom,cx=X(S.center.lng,z),cy=Y(S.center.lat,z);
+  return{x:(X(lng,z)-cx)*256+r.width/2,y:(Y(lat,z)-cy)*256+r.height/2};
+}
+function mapPoint(e){
+  const r=V.getBoundingClientRect(),z=S.zoom,cx=X(S.center.lng,z),cy=Y(S.center.lat,z);
+  return{lat:LAT(cy+(e.clientY-r.top-r.height/2)/256,z),lng:LON(cx+(e.clientX-r.left-r.width/2)/256,z)};
+}
+
+function topoTile(x,y,z){
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`;
+}
+function usgsTopoTile(x,y,z){
+  return `https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/${z}/${y}/${x}`;
+}
+function tileURL(tx,ty,z){
+  const n=N(z);if(ty<0||ty>=n)return null;
+  const x=((tx%n)+n)%n;
+  if(S.base==="topo")return topoTile(x,ty,z);
+  if(S.base==="satellite")return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${x}`;
+  return `https://tile.openstreetmap.org/${z}/${x}/${ty}.png`;
+}
+
+function renderTiles(){
+  const r=V.getBoundingClientRect(),z=S.zoom,cx=X(S.center.lng,z),cy=Y(S.center.lat,z);
+  T.innerHTML="";
+  let total=0,loaded=0;
+  for(let tx=Math.floor(cx-r.width/512)-1;tx<=Math.ceil(cx+r.width/512)+1;tx++){
+    for(let ty=Math.floor(cy-r.height/512)-1;ty<=Math.ceil(cy+r.height/512)+1;ty++){
+      const url=tileURL(tx,ty,z);if(!url)continue;total++;
+      const im=document.createElement("img");
+      im.className="bwMapTile";im.alt="";
+      im.style.left=((tx-cx)*256+r.width/2)+"px";
+      im.style.top=((ty-cy)*256+r.height/2)+"px";
+      im.src=url;
+      im.onload=()=>{loaded++;if(L)L.style.display="none"};
+      im.onerror=()=>{
+        if(S.base==="topo"&&!im.dataset.fallback){
+          im.dataset.fallback="usgs";
+          const n=N(z),x=((tx%n)+n)%n;
+          im.src=usgsTopoTile(x,ty,z);
+          return;
+        }
+        im.remove();
+      };
+      T.appendChild(im);
+    }
+  }
+  if(total&&!loaded&&L){
+    L.querySelector("b").textContent=S.base==="topo"?"Loading topographic map…":"Loading map…";
+    L.querySelector("small").textContent="Connecting to map tiles";
+    L.style.display="grid";
+  }
+}
+
+function draw(points,cls,closed){
+  if(!points||points.length<2)return;
+  const d=points.map((p,i)=>{const q=screenPoint(p.lat,p.lng);return(i?"L":"M")+" "+q.x+" "+q.y}).join(" ")+(closed?" Z":"");
+  const el=document.createElementNS("http://www.w3.org/2000/svg","path");
+  el.setAttribute("d",d);el.setAttribute("class",cls);G.appendChild(el);
+}
+function isMine(f){
+  const pin=String(f?.properties?.PIN||"");
+  return !!pin&&S.myParcels.some(p=>String(p.PIN)===pin);
+}
+function renderVectors(){
+  const r=V.getBoundingClientRect();G.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`);G.innerHTML="";
+  if($("#bwShowBoundary")?.checked!==false)draw(S.boundary,"bwBoundaryPoly",true);
+  if($("#bwShowRoutes")?.checked!==false)S.routes.forEach(r=>draw(r.points,"bwRouteLine",false));
+  if(drawing.length>1)draw(drawing,"bwDraftLine",false);
+
+  if($("#bwShowParcels")?.checked&&S.parcelGeo?.features){
+    S.parcelGeo.features.forEach(f=>{
+      const g=f.geometry;if(!g)return;
+      const polys=g.type==="Polygon"? [g.coordinates]:(g.coordinates||[]);
+      polys.forEach(poly=>poly.forEach(ring=>{
+        if(ring.length<3)return;
+        const d=ring.map((c,i)=>{const q=screenPoint(c[1],c[0]);return(i?"L":"M")+" "+q.x+" "+q.y}).join(" ")+" Z";
+        const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+        p.setAttribute("d",d);p.setAttribute("class","bwParcelPoly"+(isMine(f)?" bwSelectedParcel":""));
+        G.appendChild(p);
+      }));
+    });
+  }
+}
+function renderPins(){
+  O.innerHTML="";
+  if($("#bwShowPins")?.checked!==false){
+    S.pins.forEach(p=>{
+      const q=screenPoint(p.lat,p.lng),r=V.getBoundingClientRect();
+      if(q.x<-70||q.y<-90||q.x>r.width+70||q.y>r.height+90)return;
+      const el=document.createElement("div");
+      el.className="bwPropertyPin";el.style.left=q.x+"px";el.style.top=q.y+"px";
+      const lab=document.createElement("span");lab.textContent=p.name||p.type||"Location";el.appendChild(lab);
+      el.onpointerdown=e=>e.stopPropagation();
+      el.onclick=e=>{
+        e.stopPropagation();
+        const a=prompt("Type DELETE to remove or EDIT to rename","");
+        if(a?.toUpperCase()==="DELETE"){S.pins=S.pins.filter(x=>x.id!==p.id);save();renderAll()}
+        else if(a?.toUpperCase()==="EDIT"){const n=prompt("Name",p.name||p.type);if(n){p.name=n;save();renderAll()}}
+      };
+      O.appendChild(el);
+    });
+  }
+  if(S.gps){
+    const q=screenPoint(S.gps.lat,S.gps.lng),d=document.createElement("div");
+    d.className="bwGpsDot";d.style.left=q.x+"px";d.style.top=q.y+"px";O.appendChild(d);
+  }
+}
+function renderAll(){
+  renderTiles();renderVectors();renderPins();
+  const s=$("#bwMapStatus");if(s)s.textContent=`${S.center.lat.toFixed(2)}°, ${S.center.lng.toFixed(2)}° • Zoom ${S.zoom}`;
+}
+
+function pointInRing(p,r){
+  let inside=false,x=p.lng,y=p.lat;
+  for(let i=0,j=r.length-1;i<r.length;j=i++){
+    const a=r[i],b=r[j];
+    const hit=((a[1]>y)!=(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1]+Number.EPSILON)+a[0]);
+    if(hit)inside=!inside;
+  }
+  return inside;
+}
+function contains(p,g){
+  if(!g)return false;
+  if(g.type==="Polygon"){
+    const r=g.coordinates||[];return !!r.length&&pointInRing(p,r[0])&&!r.slice(1).some(x=>pointInRing(p,x));
+  }
+  if(g.type==="MultiPolygon"){
+    return(g.coordinates||[]).some(a=>a.length&&pointInRing(p,a[0])&&!a.slice(1).some(x=>pointInRing(p,x)));
+  }
+  return false;
+}
+function parcelAt(p){
+  if(!$("#bwShowParcels")?.checked||!S.parcelGeo?.features)return null;
+  for(let i=S.parcelGeo.features.length-1;i>=0;i--){
+    if(contains(p,S.parcelGeo.features[i].geometry))return S.parcelGeo.features[i];
+  }
+  return null;
+}
+function showParcel(f){
+  selected=f;
+  const pin=f.properties?.PIN||"Not provided";
+  $("#bwParcelTitle").textContent="PARCEL "+pin;
+  $("#bwParcelDetails").innerHTML=
+    `<div class="bwParcelRow"><span>Parcel ID</span><span>${pin}</span></div>`+
+    `<div class="bwParcelRow"><span>Source</span><span>${f.properties?.Source||"PASDA"}</span></div>`+
+    `<div class="bwParcelRow"><span>Data date</span><span>${f.properties?.Date||"Not provided"}</span></div>`+
+    `<div style="margin-top:8px;font-size:11px;opacity:.72">Public parcel geometry. Ownership is not provided by this layer.</div>`;
+  const m=isMine(f);
+  $("#bwParcelAdd").style.display=m?"none":"block";$("#bwParcelRemove").style.display=m?"block":"none";
+  $("#bwParcelPanel").hidden=false;renderVectors();
+}
+
+function loadParcels(){
+  if(S.zoom<12){hint("Zoom in to 12+ to view parcel boundaries.");return}
+  const r=V.getBoundingClientRect(),z=S.zoom,cx=X(S.center.lng,z),cy=Y(S.center.lat,z);
+  const geom={xmin:LON(cx-r.width/256/2,z),ymin:LAT(cy+r.height/256/2,z),xmax:LON(cx+r.width/256/2,z),ymax:LAT(cy-r.height/256/2,z),spatialReference:{wkid:4269}};
+  const url="https://apps.pasda.psu.edu/arcgis/rest/services/PA_Parcels/MapServer/1/query?where=1%3D1&geometry="+encodeURIComponent(JSON.stringify(geom))+
+    "&geometryType=esriGeometryEnvelope&inSR=4269&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID%2CPIN%2CSource%2CDate&returnGeometry=true&outSR=4326&resultRecordCount=1000&f=geojson";
+  hint("Loading parcel boundaries…");
+  fetch(url).then(r=>{if(!r.ok)throw Error(r.status);return r.json()})
+    .then(data=>{S.parcelGeo=data;renderVectors();hint(`${data.features?.length||0} parcels visible • Tap inside a parcel to select it`)})
+    .catch(()=>hint("Parcel service unavailable. Base map remains available."));
+}
+function scheduleParcels(){
+  if(!$("#bwShowParcels")?.checked||S.zoom<12)return;
+  clearTimeout(parcelTimer);parcelTimer=setTimeout(loadParcels,450);
+}
+function pan(dx,dy){
+  const z=S.zoom;
+  S.center={lat:clamp(LAT(Y(S.center.lat,z)-dy/256,z),-85,85),lng:LON(X(S.center.lng,z)-dx/256,z)};
+  save();renderAll();scheduleParcels();
+}
+function zoomAt(delta,cx,cy){
+  const r=V.getBoundingClientRect(),old=S.zoom,nz=clamp(old+delta,3,19);
+  if(nz===old)return;
+  const px=(cx-r.left-r.width/2)/256,py=(cy-r.top-r.height/2)/256;
+  const ox=X(S.center.lng,old)+px,oy=Y(S.center.lat,old)+py,k=2**(nz-old);
+  S.zoom=nz;S.center={lat:clamp(LAT(oy*k-py,nz),-85,85),lng:LON(ox*k-px,nz)};
+  save();renderAll();scheduleParcels();
+}
+function setTool(t){
+  tool=t;drawing=[];
+  const d=t==="boundary"||t==="route";
+  if($("#bwToolFinish"))$("#bwToolFinish").hidden=!d;
+  if($("#bwToolUndo"))$("#bwToolUndo").hidden=!d;
+  hint(t==="boundary"?"BOUNDARY MODE • Tap property corners, then Save":t==="route"?"ACCESS MODE • Tap along the route, then Save":pendingPinType?"Tap the map to place the selected location":"Drag to move • pinch, wheel or +/− to zoom");
+  renderVectors();
+}
+function beginPinPlacement(type){
+  pendingPinType=type;placingPin=true;tool="pin";
+  const box=$("#bwPinPlacement"),title=$("#bwPinPlacementTitle");
+  if(title)title.textContent=`Place ${type}`;
+  if(box)box.hidden=false;
+  hint("Move the map until the pin is on the exact location, then tap Place Pin");
+  renderPins();
+}
+function finishPinPlacement(){
+  if(!placingPin||!pendingPinType)return;
+  const r=V.getBoundingClientRect();
+  // The crosshair is fixed at the visual center, so convert the center of the map
+  // directly to geographic coordinates.
+  const fake={clientX:r.left+r.width/2,clientY:r.top+r.height/2};
+  const p=mapPoint(fake);
+  const name=prompt("Location name",pendingPinType)||pendingPinType;
+  S.pins.push({id:Date.now(),lat:p.lat,lng:p.lng,type:pendingPinType,name,icon:"📍"});
+  pendingPinType="";placingPin=false;
+  if($("#bwPinPlacement"))$("#bwPinPlacement").hidden=true;
+  save();renderAll();hint(`${name} saved`);
+}
+function cancelPinPlacement(){
+  pendingPinType="";placingPin=false;
+  if($("#bwPinPlacement"))$("#bwPinPlacement").hidden=true;
+  hint("Drag to move • pinch, wheel or +/− to zoom");
+}
+function mapTap(e){
+  const p=mapPoint(e);
+  if(placingPin)return;
+  if(tool==="browse"){
+    const f=parcelAt(p);
+    if(f)showParcel(f);else{$("#bwParcelPanel").hidden=true;selected=null;renderVectors()}
+    return;
+  }
+  if(tool==="boundary"||tool==="route"){drawing.push(p);renderVectors()}
+}
+
+// Map gestures
+V.addEventListener("pointerdown",e=>{
+  if(e.target.closest("button,label,input"))return;
+  dragging=true;moved=false;downX=e.clientX;downY=e.clientY;
+});
+V.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const dx=e.clientX-downX,dy=e.clientY-downY;
+  if(Math.abs(dx)+Math.abs(dy)>3){moved=true;pan(dx,dy);downX=e.clientX;downY=e.clientY}
+});
+V.addEventListener("pointerup",e=>{
+  if(e.target.closest("button,label,input")){dragging=false;return}
+  if(!moved)mapTap(e);
+  dragging=false;moved=false;
+});
+V.addEventListener("pointercancel",()=>{dragging=false;moved=false});
+V.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.deltaY<0?1:-1,e.clientX,e.clientY)},{passive:false});
+V.addEventListener("dblclick",e=>{e.preventDefault();zoomAt(1,e.clientX,e.clientY)});
+
+function bind(id,fn){const e=$(id);if(!e)return;e.addEventListener("click",e2=>{e2.stopPropagation();fn()})}
+bind("#bwMapZoomIn",()=>{const r=V.getBoundingClientRect();zoomAt(1,r.left+r.width/2,r.top+r.height/2)});
+bind("#bwMapZoomOut",()=>{const r=V.getBoundingClientRect();zoomAt(-1,r.left+r.width/2,r.top+r.height/2)});
+bind("#bwMapLayers",()=>$("#bwMapLayerPanel").hidden=!$("#bwMapLayerPanel").hidden);
+bind("#bwMapLocate",()=>navigator.geolocation?.getCurrentPosition(p=>{S.gps={lat:p.coords.latitude,lng:p.coords.longitude};S.center=S.gps;S.zoom=Math.max(14,S.zoom);save();renderAll()}));
+bind("#bwToolPin",()=>{$("#bwAddMenu").hidden=!$("#bwAddMenu").hidden});
+bind("#bwToolBoundary",()=>{pendingPinType="";setTool("boundary")});
+bind("#bwToolRoute",()=>{pendingPinType="";setTool("route")});
+bind("#bwToolUndo",()=>{drawing.pop();renderVectors()});
+bind("#bwToolFinish",()=>{
+  if(tool==="boundary"&&drawing.length>=3){S.boundary=drawing.slice();drawing=[];save();setTool("browse");hint("Property boundary saved")}
+  else if(tool==="route"&&drawing.length>=2){S.routes.push({id:Date.now(),points:drawing.slice()});drawing=[];save();setTool("browse");hint("Access route saved")}
+});
+bind("#bwParcelClose",()=>{$("#bwParcelPanel").hidden=true;selected=null;renderVectors()});
+bind("#bwParcelAdd",()=>{
+  if(!selected)return;const pin=String(selected.properties?.PIN||"");if(!pin)return;
+  if(!isMine(selected))S.myParcels.push({PIN:pin,properties:selected.properties,geometry:selected.geometry});
+  const g=selected.geometry;
+  if(g?.type==="Polygon")S.boundary=g.coordinates[0].map(c=>({lat:c[1],lng:c[0]}));
+  else if(g?.type==="MultiPolygon"&&g.coordinates?.[0]?.[0])S.boundary=g.coordinates[0][0].map(c=>({lat:c[1],lng:c[0]}));
+  save();renderAll();showParcel(selected);hint("Parcel added to My Property");
+});
+bind("#bwParcelRemove",()=>{
+  if(!selected)return;const pin=String(selected.properties?.PIN||"");
+  S.myParcels=S.myParcels.filter(x=>String(x.PIN)!==pin);if(!S.myParcels.length)S.boundary=[];
+  save();renderAll();showParcel(selected);hint("Parcel removed");
+});
+bind("#bwClearProperty",()=>{S.myParcels=[];S.boundary=[];save();renderAll();hint("My Property cleared")});
+
+document.querySelectorAll("[data-add-type]").forEach(btn=>{
+  btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    $("#bwAddMenu").hidden=true;
+    beginPinPlacement(btn.getAttribute("data-add-type")||"Location");
+  });
+});
+bind("#bwPinPlace",finishPinPlacement);
+bind("#bwPinCancel",cancelPinPlacement);
+$("#bwRoad")?.addEventListener("change",()=>{S.base="road";save();renderTiles()});
+$("#bwTopo")?.addEventListener("change",()=>{S.base="topo";save();renderTiles();hint("Topographic map enabled")});
+$("#bwSatellite")?.addEventListener("change",()=>{S.base="satellite";save();renderTiles()});
+$("#bwShowPins")?.addEventListener("change",renderPins);
+$("#bwShowBoundary")?.addEventListener("change",renderVectors);
+$("#bwShowRoutes")?.addEventListener("change",renderVectors);
+$("#bwShowParcels")?.addEventListener("change",e=>{
+  if(e.target.checked)loadParcels();
+  else{S.parcelGeo=null;$("#bwParcelPanel").hidden=true;renderVectors()}
+});
+window.addEventListener("resize",renderAll);
+
+// Initialize only the isolated map engine.
+setTool("browse");
+renderAll();
+setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(),200);
+})();
+</script></body></html>

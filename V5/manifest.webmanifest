@@ -1,0 +1,15 @@
+{
+  "name": "Backwoods Planner Co. \u2014 Property Map",
+  "short_name": "Backwoods Planner",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eeeae1",
+  "theme_color": "#2f3a2f",
+  "icons": [
+    {
+      "src": "backwoods-brand.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
