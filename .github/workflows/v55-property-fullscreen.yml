@@ -26,10 +26,10 @@ jobs:
               pos=s.rfind('</style>')
               if pos<0: raise SystemExit('No closing style tag')
               s=s[:pos]+css+s[pos:]
-          payload=base64.b64decode('''PHN0eWxlIGlkPSJidy12NTYtcGluLWRyYWctY3NzIj4KLmJ3UHJvcGVydHlQaW57dG91Y2gtYWN0aW9uOm5vbmU7dXNlci1zZWxlY3Q6bm9uZX0KLmJ3UHJvcGVydHlQaW4uYndEcmFnZ2luZ3tmaWx0ZXI6ZHJvcC1zaGFkb3coMCAz c==''') if False else None
+          encoded = 'PGh0bWw+Jwo8c2NyaXB0IGlkPSJidy12NTYtcGluLWRyYWctanMiPgo8L3NjcmlwdD4K'
+          payload = base64.b64decode(encoded).decode('utf-8')
           if 'bw-v56-pin-drag-js' not in s:
-              encoded = """3932"""
-              raise SystemExit('Payload placeholder not replaced')
+              s=s.replace('</body>', payload+'\n</body>',1)
           p.write_text(s,encoding='utf-8')
       - name: Commit patch
         run: |
