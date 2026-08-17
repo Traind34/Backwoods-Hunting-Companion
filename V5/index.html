@@ -153,6 +153,13 @@ main:has(#property.active){max-width:none!important;margin:0!important;padding:0
 .bwMenuPin{width:16px;height:16px;display:inline-block;position:relative;flex:0 0 16px}
 .bwMenuPin:before{content:"";position:absolute;left:1px;top:0;width:13px;height:13px;border-radius:50% 50% 50% 0;background:#273127;transform:rotate(-45deg)}
 .bwMenuPin:after{content:"";position:absolute;left:6px;top:5px;width:4px;height:4px;border-radius:50%;background:#fff}
+
+/* V5.5 mobile Property map: header-free full viewport */
+@media(max-width:600px){
+  body:has(#property.active) header{display:none!important}
+  body:has(#property.active) main{padding:0!important;margin:0!important;max-width:none!important}
+  body:has(#property.active) #property.active{top:0!important;bottom:74px!important}
+}
 </style>
 </head><body>
 <header><img id="brandLogo" alt="Backwoods Planner Co."><div><b>BACKWOODS</b><small>PLANNER CO.</small></div></header>
