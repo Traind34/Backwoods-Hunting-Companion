@@ -66,7 +66,7 @@
         im.className='bwMapTopoTile';
         im.alt='';
         im.draggable=false;
-        im.style.cssText=`position:absolute;width:${TILE}px;height:${TILE}px;left:${(tx-cx)*TILE+r.width/2}px;top:${(ty-cy)*TILE+r.height/2}px;opacity:.52;pointer-events:none;user-select:none;`;
+        im.style.cssText=`position:absolute;width:${TILE}px;height:${TILE}px;left:${(tx-cx)*TILE+r.width/2}px;top:${(ty-cy)*TILE+r.height/2}px;opacity:.78;mix-blend-mode:multiply;filter:grayscale(1) contrast(2.15) brightness(1.12);pointer-events:none;user-select:none;`;
         im.src=tile(x,ty,z);
         im.onerror=function(){
           if(!this.dataset.fallback){
