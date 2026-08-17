@@ -80,6 +80,15 @@ main:has(#property.active){max-width:none!important;margin:0!important;padding:0
 
 /* V5.5: make the map layer control unmistakable on phones */
 #bwMapTopControls #bwMapLayers{width:auto;min-width:78px;padding:0 10px;font-size:11px;letter-spacing:.08em;display:inline-flex;align-items:center;justify-content:center}
+
+/* V5.5 mobile Safari layer control */
+#bwMapLayersMobile{display:none!important;width:78px!important;height:42px!important;padding:0 8px!important;font-size:11px!important;letter-spacing:.08em!important;align-items:center!important;justify-content:center!important;touch-action:manipulation!important;-webkit-appearance:none!important}
+@media(max-width:600px){
+  #bwMapTopControls{display:none!important}
+  #bwMapZoomControls{top:10px!important;right:10px!important;z-index:100!important;gap:6px!important}
+  #bwMapZoomControls #bwMapLayersMobile{display:flex!important;position:relative!important;z-index:101!important}
+  #bwMapLayerPanel{top:60px!important;right:10px!important;z-index:120!important;width:230px!important;max-height:calc(100% - 80px)!important;overflow:auto!important}
+}
 </style>
 
 <style id="bw-v4-parcel-css">
@@ -194,6 +203,7 @@ main:has(#property.active){max-width:none!important;margin:0!important;padding:0
       </div>
 
       <div id="bwMapZoomControls">
+        <button type="button" id="bwMapLayersMobile" title="Map Layers" aria-label="Map Layers">LAYERS</button>
         <button type="button" id="bwMapZoomIn">+</button>
         <button type="button" id="bwMapZoomOut">−</button>
       </div>
@@ -709,6 +719,7 @@ function bind(id,fn){const e=$(id);if(!e)return;e.addEventListener("click",e2=>{
 bind("#bwMapZoomIn",()=>{const r=V.getBoundingClientRect();zoomAt(1,r.left+r.width/2,r.top+r.height/2)});
 bind("#bwMapZoomOut",()=>{const r=V.getBoundingClientRect();zoomAt(-1,r.left+r.width/2,r.top+r.height/2)});
 bind("#bwMapLayers",()=>$("#bwMapLayerPanel").hidden=!$("#bwMapLayerPanel").hidden);
+bind("#bwMapLayersMobile",()=>$("#bwMapLayerPanel").hidden=!$("#bwMapLayerPanel").hidden);
 bind("#bwMapLocate",()=>navigator.geolocation?.getCurrentPosition(p=>{S.gps={lat:p.coords.latitude,lng:p.coords.longitude};S.center=S.gps;S.zoom=Math.max(14,S.zoom);save();renderAll()}));
 bind("#bwToolPin",()=>{$("#bwAddMenu").hidden=!$("#bwAddMenu").hidden});
 bind("#bwToolBoundary",()=>{pendingPinType="";setTool("boundary")});
