@@ -6,26 +6,30 @@ on:
     paths:
       - '.github/workflows/v55-property-fullscreen.yml'
 
+permissions:
+  contents: write
+
 jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Hide header only on mobile property map
+      - name: Apply mobile Property fullscreen fix
         shell: python
         run: |
           from pathlib import Path
           p = Path('V5/index.html')
           s = p.read_text(encoding='utf-8')
-          css = '''\n/* V5.5 mobile Property map: use the entire viewport above bottom navigation */\n@media(max-width:600px){\n  body:has(#property.active) > header{display:none!important}\n  body:has(#property.active) main{padding:0!important;margin:0!important;max-width:none!important}\n  #property.active{top:0!important;bottom:74px!important}\n}\n'''
-          if 'V5.5 mobile Property map: use the entire viewport' not in s:
+          css = '''\n/* V5.5 mobile Property map: header-free full viewport */\n@media(max-width:600px){\n  body:has(#property.active) header{display:none!important}\n  body:has(#property.active) main{padding:0!important;margin:0!important;max-width:none!important}\n  body:has(#property.active) #property.active{top:0!important;bottom:74px!important}\n}\n'''
+          marker = 'V5.5 mobile Property map: header-free full viewport'
+          if marker not in s:
               pos = s.rfind('</style>')
               if pos == -1:
                   raise SystemExit('No closing style tag found')
               s = s[:pos] + css + s[pos:]
               p.write_text(s, encoding='utf-8')
           else:
-              print('Fullscreen property patch already present')
+              print('Mobile Property fullscreen fix already present')
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
@@ -34,6 +38,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No changes to commit.'
           else
-            git commit -m 'V5.5 make mobile property map fullscreen'
+            git commit -m 'V5.5 fix mobile Property header overlay'
             git push
           fi
