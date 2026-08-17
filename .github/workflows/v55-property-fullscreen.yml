@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/v55-property-fullscreen.yml'
+      - 'V5/bw-v56-pin-enhancements.js'
 
 permissions:
   contents: write
