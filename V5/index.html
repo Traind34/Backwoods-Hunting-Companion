@@ -77,6 +77,9 @@ main:has(#property.active){max-width:none!important;margin:0!important;padding:0
 .bwRouteLine{fill:none;stroke:#263127;stroke-width:4;stroke-dasharray:10 7;vector-effect:non-scaling-stroke}
 .bwDraftLine{fill:none;stroke:#8b7440;stroke-width:3;stroke-dasharray:7 6;vector-effect:non-scaling-stroke}
 @media(max-width:600px){#property.active{top:0;bottom:74px}}
+
+/* V5.5: make the map layer control unmistakable on phones */
+#bwMapTopControls #bwMapLayers{width:auto;min-width:78px;padding:0 10px;font-size:11px;letter-spacing:.08em;display:inline-flex;align-items:center;justify-content:center}
 </style>
 
 <style id="bw-v4-parcel-css">
@@ -187,7 +190,7 @@ main:has(#property.active){max-width:none!important;margin:0!important;padding:0
 
       <div id="bwMapTopControls">
         <button type="button" id="bwMapLocate" title="My location">◎</button>
-        <button type="button" id="bwMapLayers" title="Layers">☷</button>
+        <button type="button" id="bwMapLayers" title="Map Layers" aria-label="Map Layers">LAYERS</button>
       </div>
 
       <div id="bwMapZoomControls">
