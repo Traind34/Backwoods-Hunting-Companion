@@ -14,26 +14,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply mobile fullscreen and hunting pin improvements
+      - name: Apply mobile fullscreen and load V5.6 pin enhancements
         shell: python
         run: |
           from pathlib import Path
-          import base64
-          p = Path('V5/index.html')
-          s = p.read_text(encoding='utf-8')
-          css = '\n/* V5.5 mobile Property map: header-free full viewport */\n@media(max-width:600px){body:has(#property.active) header{display:none!important}body:has(#property.active) main{padding:0!important;margin:0!important;max-width:none!important}body:has(#property.active) #property.active{top:0!important;bottom:74px!important}}\n'
+          p=Path('V5/index.html')
+          s=p.read_text(encoding='utf-8')
+          css='\n/* V5.5 mobile Property map: header-free full viewport */\n@media(max-width:600px){body:has(#property.active) header{display:none!important}body:has(#property.active) main{padding:0!important;margin:0!important;max-width:none!important}body:has(#property.active) #property.active{top:0!important;bottom:74px!important}}\n'
           if 'V5.5 mobile Property map: header-free full viewport' not in s:
               pos=s.rfind('</style>')
               if pos<0: raise SystemExit('No closing style tag')
               s=s[:pos]+css+s[pos:]
-          encoded = 'PGh0bWw+Jwo8c2NyaXB0IGlkPSJidy12NTYtcGluLWRyYWctanMiPgo8L3NjcmlwdD4K'
-          payload = base64.b64decode(encoded).decode('utf-8')
-          if 'bw-v56-pin-drag-js' not in s:
-              s=s.replace('</body>', payload+'\n</body>',1)
+          tag='<script src="bw-v56-pin-enhancements.js"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>',1)
           p.write_text(s,encoding='utf-8')
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add V5/index.html
-          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'V5.6 improve hunting pin menu and draggable pins'; git push; fi
+          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'V5.6 load hunting pin enhancements'; git push; fi
