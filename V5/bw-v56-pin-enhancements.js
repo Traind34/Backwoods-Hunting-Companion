@@ -12,10 +12,13 @@
       b.innerHTML='<span class="bwMenuPin"></span>'+pair[1]; m.appendChild(b);
       b.addEventListener('click',function(){
         m.hidden=true;
-        const box=document.querySelector('#bwPinPlacement'),title=document.querySelector('#bwPinPlacementTitle');
-        if(title)title.textContent='Place '+pair[1];
-        if(box)box.hidden=false;
-        window.__bwStartPinType=pair[0];
+        const existing=m.querySelector('[data-add-type="Stand"]');
+        if(existing){
+          const old=existing.getAttribute('data-add-type');
+          existing.setAttribute('data-add-type',pair[0]);
+          existing.click();
+          existing.setAttribute('data-add-type',old);
+        }
       });
     });
   }
