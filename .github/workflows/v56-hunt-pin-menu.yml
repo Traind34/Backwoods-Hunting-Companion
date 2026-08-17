@@ -1,0 +1,113 @@
+name: V5.6 hunting pin menu
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/v56-hunt-pin-menu.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add HuntWise-style add menu and pins
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('V5/index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = 'V5.6 hunting pin menu'
+          if marker in s:
+              print('V5.6 already present')
+              raise SystemExit(0)
+          css = r'''\n<style id="bw-v56-hunt-pin-css">
+#bwV56Add{position:absolute;z-index:95;left:10px;bottom:48px}
+#bwV56Add>button{border:0;border-radius:12px;background:rgba(31,42,34,.96);color:#fff;padding:11px 14px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.25);touch-action:manipulation}
+#bwV56Menu{display:none;position:absolute;left:0;bottom:48px;width:205px;background:rgba(255,255,255,.98);border:1px solid #d3ccbd;border-radius:14px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.25)}
+#bwV56Menu.open{display:grid;gap:5px}
+#bwV56Menu button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:#f7f4ed;border-radius:9px;padding:10px;text-align:left;font-weight:800;color:#273127;touch-action:manipulation}
+#bwV56Menu button:hover{background:#eee9df}
+.bwV56Pin{position:absolute;z-index:96;transform:translate(-50%,-100%);width:28px;height:34px;cursor:pointer;touch-action:none;pointer-events:auto}
+.bwV56Pin:before{content:"";position:absolute;left:3px;top:0;width:22px;height:22px;border-radius:50% 50% 50% 0;background:#2f3a2f;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.bwV56Pin:after{content:"";position:absolute;left:10px;top:7px;width:8px;height:8px;border-radius:50%;background:#fff}
+.bwV56Pin span{position:absolute;left:50%;top:27px;transform:translateX(-50%);white-space:nowrap;background:rgba(255,255,255,.96);padding:2px 5px;border-radius:5px;font-size:9px;font-weight:900;color:#273127;box-shadow:0 1px 4px rgba(0,0,0,.16)}
+#bwV56Mode{display:none;position:absolute;z-index:98;left:50%;top:12px;transform:translateX(-50%);background:rgba(31,42,34,.96);color:#fff;border-radius:10px;padding:8px 12px;font-size:11px;font-weight:900;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#bwV56Card{display:none;position:absolute;z-index:110;left:10px;right:10px;bottom:82px;max-width:330px;background:#fff;border:1px solid #d3ccbd;border-radius:13px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#bwV56Card b{display:block;margin-bottom:7px;font-family:Georgia,serif}
+#bwV56Card .bwV56Actions{display:flex;gap:7px}
+#bwV56Card button{border:0;border-radius:9px;padding:8px 10px;background:#273127;color:#fff;font-weight:900}
+#bwV56Card button.danger{background:#8a3e2f}
+@media(max-width:600px){#bwV56Add{bottom:54px}#bwV56Menu{bottom:48px}#bwV56Card{bottom:82px}}
+</style>
+'''
+          js = r'''\n<script id="bw-v56-hunt-pin-js">
+(function(){
+  const TYPES=[
+    ['stand','Stand'],['camera','Camera'],['bedding','Bedding'],['food','Food'],['water','Water'],['access','Access'],['trail','Trail Camera'],['other','Other']
+  ];
+  const KEY='bwV56HuntPins';
+  let mode=null, pins=[], drag=null;
+  const $=id=>document.getElementById(id);
+  function key(){return KEY+':'+(localStorage.getItem('bwCurrentPropertyId')||localStorage.getItem('selectedPropertyId')||'default')}
+  function load(){try{pins=JSON.parse(localStorage.getItem(key())||'[]')}catch(e){pins=[]}}
+  function save(){localStorage.setItem(key(),JSON.stringify(pins))}
+  function map(){return $('bwMapViewport')||$('bwPropertyMapOnly')}
+  function overlay(){return $('bwMapOverlay')||map()}
+  function makeUI(){
+    const m=map(); if(!m||$('bwV56Add')) return !!m;
+    const wrap=document.createElement('div'); wrap.id='bwV56Add';
+    const btn=document.createElement('button'); btn.type='button'; btn.textContent='＋ ADD'; btn.setAttribute('aria-label','Add hunting location');
+    const menu=document.createElement('div'); menu.id='bwV56Menu';
+    TYPES.forEach(([id,label])=>{const b=document.createElement('button');b.type='button';b.dataset.type=id;b.textContent='📍 '+label;b.addEventListener('click',()=>start(id,label));menu.appendChild(b)});
+    wrap.append(btn,menu); m.appendChild(wrap);
+    const modeEl=document.createElement('div'); modeEl.id='bwV56Mode'; modeEl.textContent='Tap the map to place'; m.appendChild(modeEl);
+    const card=document.createElement('div'); card.id='bwV56Card'; m.appendChild(card);
+    btn.addEventListener('click',()=>menu.classList.toggle('open'));
+    render(); return true;
+  }
+  function start(id,label){mode={id,label};$('bwV56Menu').classList.remove('open');$('bwV56Mode').textContent='Tap map to place '+label;$('bwV56Mode').style.display='block';setTimeout(()=>{},0)}
+  function stop(){mode=null;if($('bwV56Mode'))$('bwV56Mode').style.display='none'}
+  function place(e){
+    if(!mode)return;
+    const m=map(); if(!m)return;
+    if(e.target.closest&&e.target.closest('#bwV56Add,#bwMapTopControls,#bwMapZoomControls,#bwMapLayerPanel,#bwMapTools,#bwV56Card'))return;
+    const r=m.getBoundingClientRect();
+    const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    const y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+    pins.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),type:mode.id,label:mode.label,x,y});
+    save(); render(); stop();
+  }
+  function render(){
+    const o=overlay(); if(!o)return;
+    o.querySelectorAll('.bwV56Pin').forEach(n=>n.remove());
+    const m=map(); if(!m)return; const r=m.getBoundingClientRect();
+    pins.forEach(p=>{const el=document.createElement('div');el.className='bwV56Pin';el.dataset.id=p.id;el.style.left=(p.x*100)+'%';el.style.top=(p.y*100)+'%';const s=document.createElement('span');s.textContent=p.label;el.appendChild(s);el.addEventListener('pointerdown',pinDown);el.addEventListener('click',e=>{e.stopPropagation();showCard(p.id)});o.appendChild(el)});
+  }
+  function pinDown(e){e.stopPropagation();const el=e.currentTarget;const p=pins.find(x=>x.id===el.dataset.id);if(!p)return;drag={p,el,startX:e.clientX,startY:e.clientY,ox:p.x,oy:p.y,m:map()};el.setPointerCapture?.(e.pointerId);el.addEventListener('pointermove',move);el.addEventListener('pointerup',up,{once:true})}
+  function move(e){if(!drag)return;const r=drag.m.getBoundingClientRect();drag.p.x=Math.max(0,Math.min(1,drag.ox+(e.clientX-drag.startX)/r.width));drag.p.y=Math.max(0,Math.min(1,drag.oy+(e.clientY-drag.startY)/r.height));drag.el.style.left=(drag.p.x*100)+'%';drag.el.style.top=(drag.p.y*100)+'%'}
+  function up(){if(!drag)return;save();drag=null}
+  function showCard(id){const p=pins.find(x=>x.id===id),c=$('bwV56Card');if(!p||!c)return;c.innerHTML='<b>📍 '+p.label+'</b><div style="font-size:12px;color:#6f756c;margin-bottom:9px">Saved to this property.</div><div class="bwV56Actions"><button type="button" data-act="move">Move</button><button type="button" data-act="delete" class="danger">Delete</button><button type="button" data-act="close">Close</button></div>';c.style.display='block';c.querySelector('[data-act="move"]').onclick=()=>{c.style.display='none';mode={id:p.type,label:p.label};$('bwV56Mode').textContent='Tap map to move '+p.label;$('bwV56Mode').style.display='block';pins=pins.filter(x=>x.id!==p.id);save()};c.querySelector('[data-act="delete"]').onclick=()=>{pins=pins.filter(x=>x.id!==p.id);save();c.style.display='none';render()};c.querySelector('[data-act="close"]').onclick=()=>c.style.display='none'}
+  function init(){if(!makeUI())return;load();render();const m=map();m.addEventListener('click',place,true);}
+  function watch(){if($('property')?.classList.contains('active'))init()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{load();setTimeout(watch,250)});else{load();setTimeout(watch,250)}
+  setInterval(watch,800);
+})();
+</script>
+'''
+          marker_html='V5.6 hunting pin menu'
+          payload=css+'\n<!-- '+marker_html+' -->\n'+js
+          pos=s.rfind('</body>')
+          if pos==-1: raise SystemExit('No closing body tag')
+          s=s[:pos]+payload+s[pos:]
+          p.write_text(s,encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git commit -m 'V5.6 add hunting pin menu and placement'
+          git push
