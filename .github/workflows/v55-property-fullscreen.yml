@@ -7,6 +7,7 @@ on:
       - '.github/workflows/v55-property-fullscreen.yml'
       - 'V5/bw-v56-pin-enhancements.js'
       - 'V5/bw-v57-layer-stack.js'
+      - 'V5/bw-v58-topo-visible.js'
 
 permissions:
   contents: write
@@ -16,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply mobile fullscreen and load V5.6/V5.7 enhancements
+      - name: Apply mobile fullscreen and load map enhancements
         shell: python
         run: |
           from pathlib import Path
@@ -29,7 +30,7 @@ jobs:
               s=s[:pos]+css+s[pos:]
           for tag in [
               '<script src="bw-v56-pin-enhancements.js"></script>',
-              '<script src="bw-v57-layer-stack.js"></script>'
+              '<script src="bw-v58-topo-visible.js"></script>'
           ]:
               if tag not in s:
                   s=s.replace('</body>',tag+'\n</body>',1)
@@ -38,5 +39,5 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add V5/index.html
-          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'V5.7 enable satellite plus topographic layers'; git push; fi
+          git add V5/index.html .github/workflows/v55-property-fullscreen.yml
+          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'V5.8 fix topo overlay rendering'; git push; fi
