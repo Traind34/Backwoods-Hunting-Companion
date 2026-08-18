@@ -1,0 +1,19 @@
+name: V6 recommendation checks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'V5/bw-v62-recommendation-engine.js'
+      - 'V5/bw-v63-today.js'
+      - 'V5/V6-RECOMMENDATION-SPEC.md'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate recommendation engine
+        run: |
+          node --check V5/bw-v62-recommendation-engine.js
+          node --check V5/bw-v63-today.js
