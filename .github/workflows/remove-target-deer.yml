@@ -1,0 +1,35 @@
+name: Remove Target Deer
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  remove-target-deer:
+    if: ${{ !contains(github.event.head_commit.message, 'Remove Target Deer field from Hunt tab') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove Target Deer field
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('V5/index.html')
+          s = p.read_text()
+          old = '<label>Target Deer<input name="target"></label>'
+          if old in s:
+              p.write_text(s.replace(old, ''))
+          else:
+              print('Target Deer field already absent')
+          PY
+      - name: Commit change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Remove Target Deer field from Hunt tab'
+          git push
