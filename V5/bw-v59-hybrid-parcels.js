@@ -18,6 +18,20 @@
     `;document.head.appendChild(s)
   }
 
+  function removeBackwoodsTerrain(){
+    document.querySelectorAll('#bwTerrain,#bwBackwoodsTerrain,[data-layer="terrain"],[data-map-type="terrain"]').forEach(el=>el.remove());
+    document.querySelectorAll('#bwMapLayerPanel label,#bwMapLayerPanel button,#bwMapLayerPanel div').forEach(el=>{
+      const text=(el.textContent||'').trim().toLowerCase();
+      if(text==='backwoods terrain'||text==='backwoods terrain map')el.remove();
+    });
+  }
+
+  function placeHybridUnderSatellite(host,sat){
+    if(!host||!sat)return;
+    const sl=sat.closest('label');
+    if(sl&&sl.parentElement)sl.parentElement.insertBefore(host,sl.nextSibling);
+  }
+
   function hybridTile(x,y,z){
     const n=N(z);if(y<0||y>=n)return null;const xx=((x%n)+n)%n;
     return `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/${z}/${y}/${xx}`;
@@ -59,8 +73,8 @@
   }
 
   function updateControls(){
+    removeBackwoodsTerrain();
     const sat=document.querySelector('#bwSatellite'),topo=document.querySelector('#bwTopo'),road=document.querySelector('#bwRoad');if(!sat||!topo||!road)return;
-    // V5.9 originally hid Satellite/Topo to force Hybrid. Restore all three standard modes.
     [sat,topo,road].forEach(cb=>{const l=cb.closest('label');if(l)l.style.display='flex'});
     bindStandardMode(road,'road');
     bindStandardMode(sat,'satellite');
@@ -70,9 +84,11 @@
     if(!host){
       host=document.createElement('label');host.id='bwHybridControl';
       host.innerHTML='<input type="radio" name="bwBase" id="bwHybrid"> Backwoods Hybrid';
-      const rl=road.closest('label');if(rl&&rl.parentElement)rl.parentElement.appendChild(host);
+      const sl=sat.closest('label');
+      if(sl&&sl.parentElement)sl.parentElement.insertBefore(host,sl.nextSibling);
+      else if(road.parentElement)road.parentElement.appendChild(host);
       host.querySelector('input').addEventListener('change',e=>{if(e.target.checked)setMode('hybrid')});
-    }
+    }else placeHybridUnderSatellite(host,sat);
 
     const mode=state().base;
     const hybridOn=localStorage.getItem(HYBRID_KEY)==='1'||mode==='hybrid';
