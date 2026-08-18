@@ -57,9 +57,7 @@
     document.head.appendChild(st);
   }
 
-  function standName(p,i){
-    return String(p.name||p.label||p.title||p.location||('Stand '+(i+1))).trim();
-  }
+  function standName(p,i){return String(p.name||p.label||p.title||p.location||('Stand '+(i+1))).trim()}
   function isStand(p){
     const t=String(p?.type||p?.kind||p?.category||p?.labelType||'').toLowerCase();
     return t==='stand'||t==='tree stand'||t==='hunting stand'||t.includes('stand');
@@ -69,50 +67,55 @@
     return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
   }
   function ensureStandDropdown(){
-    const form=document.querySelector('form[data-type="hunt"]');
+    const form=document.querySelector('form[data-type="hunt"],#hunt form');
     if(!form)return;
     const input=form.querySelector('input[name="stand"]');
-    if(!input)return;
-    let select=form.querySelector('select[name="stand"]');
-    if(!select){
+    let select=form.querySelector('select[name="stand"],select#huntStand');
+    if(!select&&input){
       select=document.createElement('select');
-      select.name='stand';
-      select.id='huntStand';
-      select.className=input.className;
-      select.style.cssText=input.style.cssText;
+      select.name='stand';select.id='huntStand';select.className=input.className;select.style.cssText=input.style.cssText;
       input.replaceWith(select);
-      const label=select.closest('label');
-      if(label)label.childNodes[0].textContent='Stand';
+    }
+    if(!select)return;
+    const legacy=state().pins||[];
+    let v6=[];
+    try{v6=window.BackwoodsData?.get?.()?.stands||[]}catch(e){}
+    const merged=[],seen=new Set();
+    v6.concat(legacy).forEach(function(p,i){
+      if(!isStand(p))return;
+      const id=String(p.id??i);
+      if(seen.has(id))return;seen.add(id);merged.push({p:p,i:i,id:id});
+    });
+    const previous=select.value;
+    select.innerHTML='';
+    const placeholder=document.createElement('option');
+    placeholder.value='';
+    placeholder.textContent=merged.length?'Select a stand…':'No stands added yet';
+    placeholder.disabled=false;
+    placeholder.selected=!previous;
+    select.appendChild(placeholder);
+    merged.forEach(function(x){
+      const o=document.createElement('option');
+      o.value=x.id;
+      o.textContent=standName(x.p,x.i);
+      select.appendChild(o);
+    });
+    if(previous && merged.some(x=>x.id===String(previous)))select.value=previous;
+    const label=select.closest('label');
+    if(label){const text=[...label.childNodes].find(n=>n.nodeType===3&&String(n.textContent).trim());if(text)text.textContent='Stand';}
+    if(!select.dataset.bwV56StandBound){
+      select.dataset.bwV56StandBound='1';
       select.addEventListener('change',function(){
         if(!select.value)return;
         const time=form.querySelector('[name="in"]');
         if(time){time.value=currentTimeValue();time.dataset.bwAuto='1';}
       });
     }
-    const pins=state().pins||[];
-    const stands=pins.map(function(p,i){return {p:p,i:i}}).filter(x=>isStand(x.p));
-    const previous=select.value;
-    select.innerHTML='';
-    const placeholder=document.createElement('option');
-    placeholder.value='';
-    placeholder.textContent=stands.length?'Select a stand…':'No stands added yet';
-    placeholder.disabled=stands.length>0;
-    placeholder.selected=true;
-    select.appendChild(placeholder);
-    stands.forEach(function(x){
-      const o=document.createElement('option');
-      o.value=String(x.p.id??x.i);
-      o.textContent=standName(x.p,x.i);
-      select.appendChild(o);
-    });
-    if(previous && stands.some(x=>String(x.p.id??x.i)===previous))select.value=previous;
   }
 
-  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields();ensureStandDropdown();loadV60()}
+  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields();ensureStandDropdown();loadV60();loadV64()}
   setInterval(run,500);run();
 
-  // Hunt section: populate today's local date and current weather from the user's location.
-  // Weather data is fetched from Open-Meteo using browser geolocation; no location is stored by this script.
   let huntWeatherBusy=false;
   function localDateValue(d){
     const x=d||new Date();
@@ -157,11 +160,11 @@
     return s;
   }
   function populateHuntDate(){
-    document.querySelectorAll('form[data-type="hunt"]').forEach(function(form){setInput(form,'date',localDateValue())});
+    document.querySelectorAll('form[data-type="hunt"],#hunt form').forEach(function(form){setInput(form,'date',localDateValue())});
   }
   function loadHuntWeather(){
     if(huntWeatherBusy||!navigator.geolocation)return;
-    const hunt=document.querySelector('form[data-type="hunt"]');
+    const hunt=document.querySelector('form[data-type="hunt"],#hunt form');
     if(!hunt||document.querySelector('#hunt')?.classList.contains('active')===false)return;
     const status=ensureWeatherStatus(hunt);
     if(status && !status.dataset.loading)status.textContent='Getting local weather…';
@@ -184,15 +187,20 @@
     },{enableHighAccuracy:false,maximumAge:300000,timeout:10000});
   }
   function runHuntAutoFields(){
-    const form=document.querySelector('form[data-type="hunt"]');
+    const form=document.querySelector('form[data-type="hunt"],#hunt form');
     if(!form)return;
     populateHuntDate();
     if(document.querySelector('#hunt')?.classList.contains('active'))loadHuntWeather();
   }
-  let bwV60Loaded=false;
+  let bwV60Loaded=false,bwV64Loaded=false;
   function loadV60(){
     if(bwV60Loaded||document.querySelector('script[data-bw-v60]'))return;
     const s=document.createElement('script');s.src='bw-v60-hunt-intelligence.js';s.dataset.bwV60='1';s.async=true;
     s.onload=function(){bwV60Loaded=true};document.head.appendChild(s);
+  }
+  function loadV64(){
+    if(bwV64Loaded||document.querySelector('script[data-bw-v64]'))return;
+    const s=document.createElement('script');s.src='bw-v64-hunt-stand-sync.js';s.dataset.bwV64='1';s.async=true;
+    s.onload=function(){bwV64Loaded=true};document.head.appendChild(s);
   }
 })();
