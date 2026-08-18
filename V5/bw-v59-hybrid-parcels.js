@@ -14,6 +14,7 @@
     const s=document.createElement('style');s.id='bwV514Style';s.textContent=`
       #bwMapViewport .bwParcelPoly{stroke:#fff!important;stroke-width:2.5!important;paint-order:stroke fill;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
       #bwMapViewport .bwSelectedParcel{fill:rgba(108,188,224,.28)!important;stroke:#5aa9d1!important;stroke-width:4!important;paint-order:stroke fill;filter:drop-shadow(0 0 1px rgba(0,0,0,.65))}
+      #bwMapViewport .bwMyPropertyPath{fill:rgba(108,188,224,.38)!important;stroke:#4f9fc9!important;stroke-width:3.5!important;paint-order:stroke fill;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.55))}
       #bwHybridControl{display:block!important;margin:0!important;font-weight:800}
       #bwHybridControl input{margin-right:6px}
     `;document.head.appendChild(s)
@@ -41,6 +42,37 @@
       const url=hybridTile(tx,ty,z);if(!url)continue;
       const im=document.createElement('img');im.className='bwMapTile';im.alt='';im.style.left=((tx-cx)*256+r.width/2)+'px';im.style.top=((ty-cy)*256+r.height/2)+'px';im.src=url;im.onerror=()=>im.remove();t.appendChild(im);
     }
+  }
+
+  function project(lat,lng,s,r){
+    const z=Math.max(3,Math.min(16,Number(s.zoom)||7));
+    const world=256*Math.pow(2,z);
+    const cx=X(s.center?.lng??-77.1945,z)*256;
+    const cy=Y(s.center?.lat??41.2033,z)*256;
+    return {x:(X(lng,z)*256-cx)+r.width/2,y:(Y(lat,z)*256-cy)+r.height/2};
+  }
+
+  function renderMyProperty(){
+    const v=document.querySelector('#bwMapViewport'),g=document.querySelector('#bwMapVector');
+    if(!v||!g)return;
+    let host=document.querySelector('#bwMyPropertyOverlay');
+    if(!host){host=document.createElementNS('http://www.w3.org/2000/svg','g');host.id='bwMyPropertyOverlay';host.setAttribute('pointer-events','none');g.appendChild(host)}
+    host.innerHTML='';
+    const s=state(),properties=Array.isArray(s.myParcels)?s.myParcels:[];
+    if(!properties.length)return;
+    const r=v.getBoundingClientRect();
+    properties.forEach(parcel=>{
+      const geom=parcel?.geometry;if(!geom)return;
+      const polygons=geom.type==='Polygon'?[geom.coordinates]:geom.type==='MultiPolygon'?(geom.coordinates||[]).map(p=>p):[];
+      polygons.forEach(poly=>{
+        (poly||[]).forEach(ring=>{
+          if(!ring||ring.length<3)return;
+          const d=ring.map((c,i)=>{const q=project(c[1],c[0],s,r);return(i?'L':'M')+' '+q.x+' '+q.y}).join(' ')+' Z';
+          const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+          p.setAttribute('d',d);p.setAttribute('class','bwMyPropertyPath');host.appendChild(p);
+        });
+      });
+    });
   }
 
   function activateHybrid(){
@@ -100,12 +132,13 @@
   function tick(){
     syncHybridControl();
     watchStandardBaseChanges();
+    renderMyProperty();
     if(localStorage.getItem(HYBRID_KEY)==='1'){
       const s=state(),sig=`${s.center?.lat}|${s.center?.lng}|${s.zoom}|${document.querySelector('#bwMapViewport')?.clientWidth}|${document.querySelector('#bwMapViewport')?.clientHeight}`;
       if(sig!==window.__bwHybridSig){window.__bwHybridSig=sig;renderHybridTiles()}
     }
   }
 
-  function boot(){css();tick();window.addEventListener('resize',()=>{window.__bwHybridSig='';tick()});setInterval(tick,700)}
+  function boot(){css();tick();window.addEventListener('resize',()=>{window.__bwHybridSig='';tick()});setInterval(tick,500)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
