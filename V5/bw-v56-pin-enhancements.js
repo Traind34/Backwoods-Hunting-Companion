@@ -56,7 +56,59 @@
     st.textContent='.bwPropertyPin{touch-action:none;user-select:none}.bwPropertyPin.bwDragging{filter:drop-shadow(0 3px 5px rgba(0,0,0,.45));transform:translate(-50%,-100%) scale(1.08)}';
     document.head.appendChild(st);
   }
-  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields()}
+
+  function standName(p,i){
+    return String(p.name||p.label||p.title||p.location||('Stand '+(i+1))).trim();
+  }
+  function isStand(p){
+    const t=String(p?.type||p?.kind||p?.category||p?.labelType||'').toLowerCase();
+    return t==='stand'||t==='tree stand'||t==='hunting stand'||t.includes('stand');
+  }
+  function currentTimeValue(){
+    const d=new Date();
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  function ensureStandDropdown(){
+    const form=document.querySelector('form[data-type="hunt"]');
+    if(!form)return;
+    const input=form.querySelector('input[name="stand"]');
+    if(!input)return;
+    let select=form.querySelector('select[name="stand"]');
+    if(!select){
+      select=document.createElement('select');
+      select.name='stand';
+      select.id='huntStand';
+      select.className=input.className;
+      select.style.cssText=input.style.cssText;
+      input.replaceWith(select);
+      const label=select.closest('label');
+      if(label)label.childNodes[0].textContent='Stand';
+      select.addEventListener('change',function(){
+        if(!select.value)return;
+        const time=form.querySelector('[name="in"]');
+        if(time){time.value=currentTimeValue();time.dataset.bwAuto='1';}
+      });
+    }
+    const pins=state().pins||[];
+    const stands=pins.map(function(p,i){return {p:p,i:i}}).filter(x=>isStand(x.p));
+    const previous=select.value;
+    select.innerHTML='';
+    const placeholder=document.createElement('option');
+    placeholder.value='';
+    placeholder.textContent=stands.length?'Select a stand…':'No stands added yet';
+    placeholder.disabled=stands.length>0;
+    placeholder.selected=true;
+    select.appendChild(placeholder);
+    stands.forEach(function(x){
+      const o=document.createElement('option');
+      o.value=String(x.p.id??x.i);
+      o.textContent=standName(x.p,x.i);
+      select.appendChild(o);
+    });
+    if(previous && stands.some(x=>String(x.p.id??x.i)===previous))select.value=previous;
+  }
+
+  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields();ensureStandDropdown()}
   setInterval(run,500);run();
 
   // Hunt section: populate today's local date and current weather from the user's location.
