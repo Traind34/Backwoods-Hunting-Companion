@@ -83,6 +83,12 @@
     if([96,99].includes(c))return 'Thunderstorm with hail';
     return 'Weather unavailable';
   }
+  function windDirection(degrees){
+    const d=Number(degrees);
+    if(!Number.isFinite(d))return '';
+    const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    return dirs[Math.round((((d%360)+360)%360)/22.5)%16];
+  }
   function setInput(form,name,value){
     const el=form?.querySelector('[name="'+name+'"]');
     if(el && (el.value==='' || el.dataset.bwAuto==='1')){el.value=value;el.dataset.bwAuto='1';}
@@ -114,7 +120,8 @@
       fetch(url).then(function(r){if(!r.ok)throw Error(r.status);return r.json()}).then(function(data){
         const c=data.current||{};
         setInput(hunt,'temp',c.temperature_2m==null?'':Math.round(c.temperature_2m)+'°F');
-        const wind=c.wind_speed_10m==null?'':Math.round(c.wind_speed_10m)+' mph'+(c.wind_direction_10m==null?'':' '+Math.round(c.wind_direction_10m)+'°');
+        const direction=windDirection(c.wind_direction_10m);
+        const wind=c.wind_speed_10m==null?'':Math.round(c.wind_speed_10m)+' mph'+(direction?' '+direction:'');
         setInput(hunt,'wind',wind);
         setInput(hunt,'weather',weatherText(c.weather_code));
         if(status){status.dataset.loading='done';status.textContent='Weather automatically populated from your current location.'}
