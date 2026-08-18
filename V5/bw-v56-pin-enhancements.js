@@ -56,6 +56,78 @@
     st.textContent='.bwPropertyPin{touch-action:none;user-select:none}.bwPropertyPin.bwDragging{filter:drop-shadow(0 3px 5px rgba(0,0,0,.45));transform:translate(-50%,-100%) scale(1.08)}';
     document.head.appendChild(st);
   }
-  function run(){injectCss();addMenuItems();tagPins();bindDrag()}
+  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields()}
   setInterval(run,500);run();
+
+  // Hunt section: populate today's local date and current weather from the user's location.
+  // Weather data is fetched from Open-Meteo using browser geolocation; no location is stored by this script.
+  let huntWeatherBusy=false;
+  function localDateValue(d){
+    const x=d||new Date();
+    const y=x.getFullYear(),m=String(x.getMonth()+1).padStart(2,'0'),day=String(x.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+  function weatherText(code){
+    const c=Number(code);
+    if(c===0)return 'Clear';
+    if([1,2,3].includes(c))return c===1?'Mainly clear':c===2?'Partly cloudy':'Overcast';
+    if([45,48].includes(c))return 'Fog';
+    if([51,53,55].includes(c))return 'Drizzle';
+    if([56,57].includes(c))return 'Freezing drizzle';
+    if([61,63,65].includes(c))return 'Rain';
+    if([66,67].includes(c))return 'Freezing rain';
+    if([71,73,75,77].includes(c))return 'Snow';
+    if([80,81,82].includes(c))return 'Rain showers';
+    if([85,86].includes(c))return 'Snow showers';
+    if([95].includes(c))return 'Thunderstorm';
+    if([96,99].includes(c))return 'Thunderstorm with hail';
+    return 'Weather unavailable';
+  }
+  function setInput(form,name,value){
+    const el=form?.querySelector('[name="'+name+'"]');
+    if(el && (el.value==='' || el.dataset.bwAuto==='1')){el.value=value;el.dataset.bwAuto='1';}
+  }
+  function ensureWeatherStatus(form){
+    if(!form)return null;
+    let s=form.querySelector('.bwAutoWeatherStatus');
+    if(!s){
+      s=document.createElement('div');s.className='bwAutoWeatherStatus';
+      s.style.cssText='grid-column:1/-1;font-size:11px;color:#6f756c;margin-top:-3px';
+      const weather=form.querySelector('[name="weather"]')?.closest('label');
+      if(weather)weather.after(s);else form.appendChild(s);
+    }
+    return s;
+  }
+  function populateHuntDate(){
+    document.querySelectorAll('form[data-type="hunt"]').forEach(function(form){setInput(form,'date',localDateValue())});
+  }
+  function loadHuntWeather(){
+    if(huntWeatherBusy||!navigator.geolocation)return;
+    const hunt=document.querySelector('form[data-type="hunt"]');
+    if(!hunt||document.querySelector('#hunt')?.classList.contains('active')===false)return;
+    const status=ensureWeatherStatus(hunt);
+    if(status && !status.dataset.loading)status.textContent='Getting local weather…';
+    huntWeatherBusy=true;
+    navigator.geolocation.getCurrentPosition(function(pos){
+      const lat=pos.coords.latitude,lon=pos.coords.longitude;
+      const url='https://api.open-meteo.com/v1/forecast?latitude='+encodeURIComponent(lat)+'&longitude='+encodeURIComponent(lon)+'&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto';
+      fetch(url).then(function(r){if(!r.ok)throw Error(r.status);return r.json()}).then(function(data){
+        const c=data.current||{};
+        setInput(hunt,'temp',c.temperature_2m==null?'':Math.round(c.temperature_2m)+'°F');
+        const wind=c.wind_speed_10m==null?'':Math.round(c.wind_speed_10m)+' mph'+(c.wind_direction_10m==null?'':' '+Math.round(c.wind_direction_10m)+'°');
+        setInput(hunt,'wind',wind);
+        setInput(hunt,'weather',weatherText(c.weather_code));
+        if(status){status.dataset.loading='done';status.textContent='Weather automatically populated from your current location.'}
+      }).catch(function(){if(status){status.dataset.loading='done';status.textContent='Weather could not be loaded. You can enter it manually.'}}).finally(function(){huntWeatherBusy=false});
+    },function(){
+      if(status){status.dataset.loading='done';status.textContent='Location permission is needed for automatic weather.'}
+      huntWeatherBusy=false;
+    },{enableHighAccuracy:false,maximumAge:300000,timeout:10000});
+  }
+  function runHuntAutoFields(){
+    const form=document.querySelector('form[data-type="hunt"]');
+    if(!form)return;
+    populateHuntDate();
+    if(document.querySelector('#hunt')?.classList.contains('active'))loadHuntWeather();
+  }
 })();
