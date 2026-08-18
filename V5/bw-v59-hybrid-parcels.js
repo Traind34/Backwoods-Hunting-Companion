@@ -14,7 +14,8 @@
     const s=document.createElement('style');s.id='bwV59Style';s.textContent=`
       #bwMapViewport .bwParcelPoly{stroke:#fff!important;stroke-width:2.5!important;paint-order:stroke fill;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
       #bwMapViewport .bwSelectedParcel{stroke:#f28c28!important;stroke-width:4!important}
-      #bwHybridControl{display:flex;align-items:center;gap:8px;margin-top:7px;font-weight:800}
+      #bwHybridControl{display:block!important;margin-top:0!important;font-weight:800}
+      #bwHybridControl input{margin-right:6px}
     `;document.head.appendChild(s)
   }
 
@@ -24,12 +25,6 @@
       const text=(el.textContent||'').trim().toLowerCase();
       if(text==='backwoods terrain'||text==='backwoods terrain map')el.remove();
     });
-  }
-
-  function placeHybridUnderSatellite(host,sat){
-    if(!host||!sat)return;
-    const sl=sat.closest('label');
-    if(sl&&sl.parentElement)sl.parentElement.insertBefore(host,sl.nextSibling);
   }
 
   function hybridTile(x,y,z){
@@ -53,46 +48,63 @@
     setStateBase(mode);
     const v=document.querySelector('#bwMapViewport');if(v)v.classList.remove('bw-hybrid-active');
     const h=document.querySelector('#bwHybrid');if(h)h.checked=mode==='hybrid';
+    const road=document.querySelector('#bwRoad'),sat=document.querySelector('#bwSatellite'),topo=document.querySelector('#bwTopo');
     if(mode==='hybrid'){
-      const road=document.querySelector('#bwRoad'),sat=document.querySelector('#bwSatellite'),topo=document.querySelector('#bwTopo');
       if(road)road.checked=false;if(sat)sat.checked=false;if(topo)topo.checked=false;
       renderHybridTiles();
+    }else{
+      if(road)road.checked=mode==='road';if(sat)sat.checked=mode==='satellite';if(topo)topo.checked=mode==='topo';
+      const t=document.querySelector('#bwMapTiles');if(t)t.style.display='';
+      const cb=mode==='road'?road:mode==='satellite'?sat:topo;
+      if(cb)cb.dispatchEvent(new Event('change',{bubbles:true}));
     }
   }
 
   function bindStandardMode(cb,mode){
-    if(!cb||cb.dataset.v59Bound)return;
-    cb.dataset.v59Bound='1';
+    if(!cb||cb.dataset.v510Bound)return;
+    cb.dataset.v510Bound='1';
     cb.addEventListener('change',()=>{
       if(!cb.checked)return;
       localStorage.setItem(HYBRID_KEY,'0');
       const h=document.querySelector('#bwHybrid');if(h)h.checked=false;
       setStateBase(mode);
-      const t=document.querySelector('#bwMapTiles');if(t)t.style.display='';
     });
+  }
+
+  function ensureHybridControl(sat,road){
+    let host=document.querySelector('#bwHybridControl');
+    if(!host){
+      host=document.createElement('label');
+      host.id='bwHybridControl';
+      host.innerHTML='<input type="radio" name="bwBase" id="bwHybrid"> Backwoods Hybrid';
+    }
+    const input=host.querySelector('#bwHybrid');
+    if(input&&!input.dataset.v510Bound){
+      input.dataset.v510Bound='1';
+      input.addEventListener('change',e=>{if(e.target.checked)setMode('hybrid')});
+    }
+    if(sat&&sat.closest('label')&&sat.closest('label').parentElement){
+      sat.closest('label').parentElement.insertBefore(host,sat.closest('label').nextSibling);
+    }else if(road&&road.closest('label')&&road.closest('label').parentElement){
+      road.closest('label').parentElement.appendChild(host);
+    }
+    return input;
   }
 
   function updateControls(){
     removeBackwoodsTerrain();
-    const sat=document.querySelector('#bwSatellite'),topo=document.querySelector('#bwTopo'),road=document.querySelector('#bwRoad');if(!sat||!topo||!road)return;
-    [sat,topo,road].forEach(cb=>{const l=cb.closest('label');if(l)l.style.display='flex'});
-    bindStandardMode(road,'road');
-    bindStandardMode(sat,'satellite');
-    bindStandardMode(topo,'topo');
-
-    let host=document.querySelector('#bwHybridControl');
-    if(!host){
-      host=document.createElement('label');host.id='bwHybridControl';
-      host.innerHTML='<input type="radio" name="bwBase" id="bwHybrid"> Backwoods Hybrid';
-      const sl=sat.closest('label');
-      if(sl&&sl.parentElement)sl.parentElement.insertBefore(host,sl.nextSibling);
-      else if(road.parentElement)road.parentElement.appendChild(host);
-      host.querySelector('input').addEventListener('change',e=>{if(e.target.checked)setMode('hybrid')});
-    }else placeHybridUnderSatellite(host,sat);
+    const sat=document.querySelector('#bwSatellite'),topo=document.querySelector('#bwTopo'),road=document.querySelector('#bwRoad');
+    const h=ensureHybridControl(sat,road);
+    if(sat&&topo&&road){
+      [sat,topo,road].forEach(cb=>{const l=cb.closest('label');if(l)l.style.display='flex'});
+      bindStandardMode(road,'road');
+      bindStandardMode(sat,'satellite');
+      bindStandardMode(topo,'topo');
+    }
 
     const mode=state().base;
     const hybridOn=localStorage.getItem(HYBRID_KEY)==='1'||mode==='hybrid';
-    const h=document.querySelector('#bwHybrid');if(h)h.checked=hybridOn;
+    if(h)h.checked=hybridOn;
 
     if(hybridOn){
       localStorage.setItem(HYBRID_KEY,'1');
@@ -100,9 +112,9 @@
       renderHybridTiles();
     }else{
       localStorage.setItem(HYBRID_KEY,'0');
-      if(mode==='satellite')sat.checked=true;
-      else if(mode==='topo')topo.checked=true;
-      else road.checked=true;
+      if(mode==='satellite'&&sat)sat.checked=true;
+      else if(mode==='topo'&&topo)topo.checked=true;
+      else if(road)road.checked=true;
     }
   }
 
