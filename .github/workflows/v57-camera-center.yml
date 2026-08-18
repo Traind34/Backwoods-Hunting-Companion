@@ -1,0 +1,99 @@
+name: V5.7 camera center
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/v57-camera-center.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add camera center
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('V5/index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = 'V5.7 camera center'
+          if marker in s:
+              print('V5.7 already present')
+              raise SystemExit(0)
+
+          old = '''<section id="camera" class="screen"><FormTitle title="Trail Camera Check" eyebrow="SCOUT"></FormTitle><form class="form" data-type="camera">
+          <label>Date<input name="date" type="date"></label><label>Camera ID<input name="id" placeholder="CAM-01"></label><label>Location<input name="location"></label><label>Photos<input name="photos" type="number"></label><label>Bucks<input name="bucks" type="number"></label><label>Does<input name="does" type="number"></label><label>Fawns<input name="fawns" type="number"></label><label>Wind / Weather<input name="weather"></label><label class="wide">Patterns / Action Needed<textarea name="notes"></textarea></label><button class="primary">Save Camera Check</button></form></section>'''
+
+          # The source is one line; normalize whitespace only for matching.
+          start = s.find('<section id="camera" class="screen">')
+          end = s.find('</section>', start)
+          if start == -1 or end == -1:
+              raise SystemExit('Camera section not found')
+          end += len('</section>')
+
+          section = r'''<section id="camera" class="screen">
+          <div class="page"><button class="back" data-home>‹</button><div><p class="eyebrow">SCOUT</p><h1>Camera Center</h1></div></div>
+          <div class="card bwCameraHero"><b>Trail Camera Library</b><p class="bwmuted">Create a camera slot, upload photos from that camera, and keep every image organized by location. Cellular-camera integrations can use the camera's unique upload ID later.</p></div>
+          <div class="card"><form id="bwCameraForm" class="form" data-type="cameraSlot"><label>Camera Name<input name="name" placeholder="North Ridge CAM-01" required></label><label>Camera ID<input name="cameraId" placeholder="CAM-01" required></label><label>Location<input name="location" placeholder="North Ridge"></label><label>Camera Type<select name="type"><option value="standard">Standard / SD Card</option><option value="cellular">Cellular Camera</option></select></label><label>Provider / Brand<input name="provider" placeholder="Optional"></label><label class="wide">Notes<textarea name="notes" placeholder="Purpose, access notes, battery schedule…"></textarea></label><button class="primary" type="submit">Create Camera Slot</button></form></div>
+          <div class="card"><b>Your Cameras</b><div id="bwCameraSlots" class="bwlist"></div></div>
+          <div class="card" id="bwCameraUploadCard" hidden><b id="bwCameraUploadTitle">Upload Photos</b><p id="bwCameraUploadMeta" class="bwmuted"></p><input id="bwCameraFiles" type="file" accept="image/*" multiple style="width:100%;padding:12px;border:1px solid #d7d0c1;border-radius:13px;background:#fff"><div id="bwCameraUploadStatus" class="bwmuted" style="margin-top:8px"></div><div id="bwCameraGallery" class="bwCameraGallery"></div></div>
+          <div class="card"><b>Cellular Camera Integration</b><p class="bwmuted">Each camera gets a unique ingestion ID. The future cloud service can use that ID to route incoming cellular-camera photos automatically into the correct camera slot.</p><div id="bwCameraIntegration" class="bwCameraIntegration">No camera selected.</div></div>
+          </section>'''
+
+          s = s[:start] + section + s[end:]
+
+          css = r'''<style id="bw-v57-camera-css">
+          .bwCameraGallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+          .bwCameraThumb{position:relative;border-radius:10px;overflow:hidden;background:#eee9df;aspect-ratio:1}
+          .bwCameraThumb img{width:100%;height:100%;object-fit:cover;display:block}
+          .bwCameraThumb small{position:absolute;left:5px;right:5px;bottom:5px;background:rgba(0,0,0,.65);color:#fff;padding:3px 5px;border-radius:5px;font-size:9px}
+          .bwCameraSlot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+          .bwCameraSlotMain{min-width:0}.bwCameraSlotMain b{display:block}.bwCameraSlotMain small{display:block;color:#6f756c;margin-top:3px}
+          .bwCameraActions{display:flex;gap:5px;flex-wrap:wrap}.bwCameraActions button{border:0;border-radius:8px;padding:8px 9px;background:#273127;color:#fff;font-weight:800;font-size:11px}.bwCameraActions button.danger{background:#8a3e2f}
+          .bwCameraIntegration{background:#f7f4ed;border:1px dashed #c9c0af;border-radius:10px;padding:10px;font-family:monospace;font-size:11px;word-break:break-all}
+          @media(min-width:700px){.bwCameraGallery{grid-template-columns:repeat(4,minmax(0,1fr))}}
+          </style>'''
+
+          js = r'''<script id="bw-v57-camera-js">
+          (function(){
+            'use strict';
+            const META='bwCameraSlotsV57';
+            const DB='bwCameraPhotosV57';
+            let selected=null;
+            const $=id=>document.getElementById(id);
+            function slots(){try{return JSON.parse(localStorage.getItem(META)||'[]')}catch(e){return[]}}
+            function saveSlots(x){localStorage.setItem(META,JSON.stringify(x))}
+            function uid(){return 'CAM-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,7).toUpperCase()}
+            function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+            async function addPhoto(cameraId,file){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite'),o=tx.objectStore('photos');const r=o.add({cameraId,name:file.name,type:file.type,blob:file,date:new Date().toISOString()});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+            async function getPhotos(cameraId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readonly'),o=tx.objectStore('photos'),out=[];const r=o.openCursor();r.onsuccess=e=>{const c=e.target.result;if(!c)return resolve(out);if(c.value.cameraId===cameraId)out.push(c.value);c.continue()};r.onerror=()=>reject(r.error)})}
+            async function deletePhotos(cameraId){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite'),o=tx.objectStore('photos'),r=o.openCursor();r.onsuccess=e=>{const c=e.target.result;if(!c)return resolve();if(c.value.cameraId===cameraId)c.delete();c.continue()};r.onerror=()=>reject(r.error)})}
+            function integration(slot){return 'BW-CAM-INGEST-'+slot.ingestId}
+            function renderSlots(){const el=$('bwCameraSlots');if(!el)return;const list=slots();el.innerHTML=list.length?list.map(x=>`<div class="row bwCameraSlot"><div class="bwCameraSlotMain"><b>${esc(x.name)}</b><small>${esc(x.cameraId)} • ${esc(x.location||'No location')} • ${x.type==='cellular'?'Cellular':'Standard'}</small></div><div class="bwCameraActions"><button type="button" data-cam="${x.id}">Photos</button><button type="button" data-ingest="${x.id}">Upload ID</button><button type="button" class="danger" data-delete="${x.id}">Delete</button></div></div>`).join(''):'<div class="card">No cameras yet. Create your first camera slot above.</div>'}
+            function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+            function select(id){selected=slots().find(x=>x.id===id)||null;const card=$('bwCameraUploadCard');if(!selected||!card)return;card.hidden=false;$('bwCameraUploadTitle').textContent='Photos — '+selected.name;$('bwCameraUploadMeta').textContent=selected.cameraId+' • '+(selected.location||'No location');$('bwCameraIntegration').textContent='Camera ingestion ID: '+integration(selected);loadGallery()}
+            async function loadGallery(){const g=$('bwCameraGallery');if(!g||!selected)return;g.innerHTML='Loading photos…';const ps=await getPhotos(selected.id);g.innerHTML=ps.length?ps.map(p=>{const u=URL.createObjectURL(p.blob);return `<div class="bwCameraThumb"><img src="${u}" alt="${esc(p.name)}"><small>${new Date(p.date).toLocaleString()}</small></div>`}).join(''):'<div class="bwmuted">No photos uploaded for this camera yet.</div>'}
+            async function init(){renderSlots();const f=$('bwCameraForm');if(f&&!f.dataset.bound){f.dataset.bound='1';f.addEventListener('submit',e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f)),list=slots();const slot={id:Date.now().toString(36),ingestId:uid(),created:new Date().toISOString(),...v};list.unshift(slot);saveSlots(list);f.reset();renderSlots();select(slot.id);if(window.toast)toast('Camera slot created')})}
+              const list=$('bwCameraSlots');if(list&&!list.dataset.bound){list.dataset.bound='1';list.addEventListener('click',async e=>{const id=e.target.dataset.cam||e.target.dataset.ingest||e.target.dataset.delete;if(!id)return;const slot=slots().find(x=>x.id===id);if(e.target.dataset.cam)select(id);else if(e.target.dataset.ingest&&slot){navigator.clipboard?.writeText(integration(slot));$('bwCameraIntegration').textContent='Camera ingestion ID: '+integration(slot)+' (copied if your browser allows it)';select(id)}else if(e.target.dataset.delete&&slot){if(confirm('Delete '+slot.name+' and its stored photos from this device?')){await deletePhotos(id);saveSlots(slots().filter(x=>x.id!==id));if(selected?.id===id){selected=null;$('bwCameraUploadCard').hidden=true}$('bwCameraIntegration').textContent='No camera selected.';renderSlots()}}})}
+              const files=$('bwCameraFiles');if(files&&!files.dataset.bound){files.dataset.bound='1';files.addEventListener('change',async e=>{if(!selected)return;const fs=[...e.target.files];if(!fs.length)return;const st=$('bwCameraUploadStatus');st.textContent='Saving '+fs.length+' photo'+(fs.length===1?'':'s')+'…';for(const file of fs)await addPhoto(selected.id,file);files.value='';st.textContent=fs.length+' photo'+(fs.length===1?'':'s')+' saved to '+selected.name+'.';loadGallery()})}
+            }
+            function watch(){if($('camera')?.classList.contains('active'))init()}
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,100));else setTimeout(init,100);setInterval(watch,800);
+          })();
+          </script>'''
+
+          pos=s.rfind('</body>')
+          if pos==-1: raise SystemExit('No closing body tag')
+          s=s[:pos]+css+'\n'+js+'\n<!-- V5.7 camera center -->\n'+s[pos:]
+          p.write_text(s,encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git commit -m 'V5.7 add camera center and photo library'
+          git push
