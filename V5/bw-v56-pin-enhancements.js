@@ -108,7 +108,7 @@
     if(previous && stands.some(x=>String(x.p.id??x.i)===previous))select.value=previous;
   }
 
-  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields();ensureStandDropdown()}
+  function run(){injectCss();addMenuItems();tagPins();bindDrag();runHuntAutoFields();ensureStandDropdown();loadV60()}
   setInterval(run,500);run();
 
   // Hunt section: populate today's local date and current weather from the user's location.
@@ -188,5 +188,11 @@
     if(!form)return;
     populateHuntDate();
     if(document.querySelector('#hunt')?.classList.contains('active'))loadHuntWeather();
+  }
+  let bwV60Loaded=false;
+  function loadV60(){
+    if(bwV60Loaded||document.querySelector('script[data-bw-v60]'))return;
+    const s=document.createElement('script');s.src='bw-v60-hunt-intelligence.js';s.dataset.bwV60='1';s.async=true;
+    s.onload=function(){bwV60Loaded=true};document.head.appendChild(s);
   }
 })();

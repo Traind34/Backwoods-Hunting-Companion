@@ -1,0 +1,25 @@
+name: V6 Hunt Intelligence check
+
+on:
+  push:
+    branches:
+      - v6-hunt-intelligence-foundation
+    paths:
+      - 'V5/bw-v60-hunt-intelligence.js'
+      - 'V5/bw-v56-pin-enhancements.js'
+      - 'V5/ROADMAP.md'
+      - '.github/workflows/v60-hunt-intelligence-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check V6 JavaScript syntax
+        run: |
+          node --check V5/bw-v60-hunt-intelligence.js
+          node --check V5/bw-v56-pin-enhancements.js
