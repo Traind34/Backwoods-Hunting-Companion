@@ -168,3 +168,8 @@
   const load=()=>{if(window.BackwoodsV7)return;const s=document.createElement('script');s.src='bw-v7-product-suite.js';s.defer=true;document.head.appendChild(s)};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
 })();
+
+(function(){
+  const load=()=>{if(document.querySelector('script[data-bw-v7-bridge]'))return;const s=document.createElement('script');s.src='bw-v7-bridge.js';s.defer=true;s.dataset.bwV7Bridge='1';document.head.appendChild(s)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
