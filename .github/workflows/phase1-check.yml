@@ -54,3 +54,5 @@ jobs:
           done
       - name: Run canonical data regression test
         run: node V5/tests/phase1-contract.test.js
+      - name: Run Phase 1 edge case regression test
+        run: node V5/tests/phase1-edge-cases.test.js
