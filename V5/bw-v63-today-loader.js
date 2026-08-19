@@ -2,6 +2,10 @@
   'use strict';
   if(window.__bwV63Loader)return;window.__bwV63Loader=true;
   function load(src,key){if(document.querySelector('script[data-'+key+']'))return;const s=document.createElement('script');s.src=src;s.async=true;s.setAttribute('data-'+key,'1');document.head.appendChild(s)}
-  function init(){load('bw-v62-recommendation-engine.js','bw-v62');setTimeout(function(){load('bw-v63-today.js','bw-v63')},50)}
+  function init(){
+    load('bw-v62-recommendation-engine.js','bw-v62');
+    setTimeout(function(){load('bw-v63-today.js','bw-v63')},50);
+    setTimeout(function(){load('bw-v64-production-bridge.js','bw-v64')},150);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
