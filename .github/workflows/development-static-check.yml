@@ -1,0 +1,22 @@
+name: Backwoods Development Static Check
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development]
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check Phase 1 JavaScript syntax
+        run: |
+          node --check V5/bw-v8-backwoods-suite.js
+          node --check V5/bw-v8-bridge.js
+          node --check V5/bw-v8-field-hardening.js
+          node --check V5/bw-v7-bridge.js
