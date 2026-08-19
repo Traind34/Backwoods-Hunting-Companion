@@ -1,0 +1,43 @@
+name: Backwoods Phase 1 Check
+
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development, main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -e
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find V5 -type f -name '*.js' -print0)
+      - name: Validate JSON
+        shell: bash
+        run: |
+          set -e
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));" "$file"
+          done < <(find V5 -type f -name '*.json' -print0)
+      - name: Verify Phase 1 files
+        shell: bash
+        run: |
+          set -e
+          test -f V5/index.html
+          test -f V5/bw-v8-backwoods-suite.js
+          test -f V5/bw-v8-bridge.js
+          test -f V5/bw-v9-data-bridge.js
+          test -f V5/bw-v10-phase1-integration.js
