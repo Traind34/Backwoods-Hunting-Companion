@@ -36,8 +36,18 @@ jobs:
         shell: bash
         run: |
           set -e
-          test -f V5/index.html
-          test -f V5/bw-v8-backwoods-suite.js
-          test -f V5/bw-v8-bridge.js
-          test -f V5/bw-v9-data-bridge.js
-          test -f V5/bw-v10-phase1-integration.js
+          for file in \
+            V5/index.html \
+            V5/bw-v8-backwoods-suite.js \
+            V5/bw-v8-bridge.js \
+            V5/bw-v9-data-bridge.js \
+            V5/bw-v10-phase1-integration.js \
+            V5/bw-v11-field-data-contract.js \
+            V5/bw-v12-seamless-sync.js \
+            V5/bw-v13-intelligence-views.js \
+            V5/bw-v14-field-dashboard.js \
+            V5/bw-v15-camera-linker.js \
+            V5/bw-v16-camera-canonical-sync.js
+          do
+            test -f "$file"
+          done
