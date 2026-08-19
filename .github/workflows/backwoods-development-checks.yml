@@ -1,0 +1,41 @@
+name: Backwoods Development Checks
+
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development, main]
+
+jobs:
+  javascript-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check JavaScript files
+        shell: bash
+        run: |
+          set -euo pipefail
+          find V5 -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+      - name: Check JSON files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path('V5').rglob('*.json'):
+              print(f'Checking {p}')
+              json.loads(p.read_text(encoding='utf-8'))
+          PY
+      - name: Check required Phase 1 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f V5/index.html
+          test -f V5/bw-v8-backwoods-suite.js
+          test -f V5/bw-v8-bridge.js
+          echo 'Required Phase 1 files present.'
