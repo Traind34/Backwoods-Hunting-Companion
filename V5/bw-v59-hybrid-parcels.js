@@ -163,3 +163,8 @@
   function init(){style();build();openDB().then(render).catch(()=>{})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
+(function(){
+  const load=()=>{if(window.BackwoodsV7)return;const s=document.createElement('script');s.src='bw-v7-product-suite.js';s.defer=true;document.head.appendChild(s)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
