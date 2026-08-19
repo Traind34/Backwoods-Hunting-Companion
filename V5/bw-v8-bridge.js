@@ -9,10 +9,11 @@ function loadDashboard(){return loadScript('bw-v14-field-dashboard.js')}
 function loadCameras(){return loadScript('bw-v15-camera-linker.js')}
 function loadCameraCanonicalSync(){return loadScript('bw-v16-camera-canonical-sync.js')}
 function loadLegacyLiveSync(){return loadScript('bw-v17-legacy-live-sync.js')}
+function loadSafeBootstrap(){return loadScript('bw-v19-safe-bootstrap.js')}
 function open(){window.dispatchEvent(new Event('bw:open-suite'))}
 function init(){
  if(document.getElementById('bwCommandCenterButton'))return;
- loadBridge().then(function(){return loadFieldContract()}).then(function(){return loadIntegration()}).then(function(){return loadSync()}).then(function(){return loadIntelligence()}).then(function(){return loadDashboard()}).then(function(){return loadCameras()}).then(function(){return loadCameraCanonicalSync()}).then(function(){return loadLegacyLiveSync()});
+ loadBridge().then(function(){return loadFieldContract()}).then(function(){return loadIntegration()}).then(function(){return loadSync()}).then(function(){return loadIntelligence()}).then(function(){return loadDashboard()}).then(function(){return loadCameras()}).then(function(){return loadCameraCanonicalSync()}).then(function(){return loadLegacyLiveSync()}).then(function(){return loadSafeBootstrap()});
  var b=document.createElement('button');b.id='bwCommandCenterButton';b.type='button';b.textContent='Backwoods Command Center';b.style.cssText='position:fixed;right:16px;bottom:16px;z-index:9998;background:#283328;color:#fff;border:0;border-radius:12px;padding:12px 16px;font-weight:800;box-shadow:0 3px 12px #0003;cursor:pointer';b.onclick=open;document.body.appendChild(b)
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
