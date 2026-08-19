@@ -47,7 +47,8 @@ jobs:
             V5/bw-v13-intelligence-views.js \
             V5/bw-v14-field-dashboard.js \
             V5/bw-v15-camera-linker.js \
-            V5/bw-v16-camera-canonical-sync.js
+            V5/bw-v16-camera-canonical-sync.js \
+            V5/bw-v17-legacy-live-sync.js
           do
             test -f "$file"
           done
