@@ -1,0 +1,51 @@
+name: V6 runtime modules
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'V5/bw-v65-app-core.js'
+      - 'V5/bw-v66-hunt-controller.js'
+      - 'V5/bw-v67-bootstrap.js'
+      - 'V5/bw-v72-canonical-intelligence.js'
+      - '.github/workflows/v6-runtime-modules.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate V6 runtime modules
+        run: |
+          node --check V5/bw-v65-app-core.js
+          node --check V5/bw-v66-hunt-controller.js
+          node --check V5/bw-v67-bootstrap.js
+          node --check V5/bw-v72-canonical-intelligence.js
+      - name: Load modules in application
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('V5/index.html')
+          s=p.read_text(encoding='utf-8')
+          tags=[
+            '<script src="bw-v65-app-core.js" data-bw-v65="1"></script>',
+            '<script src="bw-v66-hunt-controller.js" data-bw-v66="1"></script>',
+            '<script src="bw-v72-canonical-intelligence.js" data-bw-v72="1"></script>'
+          ]
+          marker='</body>'
+          pos=s.rfind(marker)
+          if pos<0: raise SystemExit('No body closing tag')
+          for tag in tags:
+              if tag not in s:
+                  s=s[:pos]+tag+'\n'+s[pos:]
+                  pos+=len(tag)+1
+          p.write_text(s,encoding='utf-8')
+      - name: Commit application integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'Load V6 Hunt and intelligence runtime modules'; git push; fi
