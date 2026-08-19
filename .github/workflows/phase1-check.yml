@@ -52,3 +52,5 @@ jobs:
           do
             test -f "$file"
           done
+      - name: Run canonical data regression test
+        run: node V5/tests/phase1-contract.test.js
