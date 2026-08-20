@@ -4,13 +4,9 @@ if(window.BackwoodsHuntController)return;
 function forms(){return [...document.querySelectorAll('form[data-type="hunt"],#hunt form')];}
 function stands(){const s=window.BackwoodsData?.get?.()||{};return Array.isArray(s.stands)?s.stands:[]}
 function legacy(){try{return JSON.parse(localStorage.getItem('backwoods-planner-map-v5')||'{}').pins||[]}catch(e){return[]}}
-function text(p){return String(p?.name||p?.label||p?.title||p?.location||'').trim().toLowerCase()}
 function isStand(p){
-  const t=String(p?.type||p?.kind||p?.category||p?.labelType||'').toLowerCase();
-  const n=text(p);
-  if(t.includes('camera')||t.includes('trail camera')||n.includes('camera'))return false;
-  if(t==='stand'||t.includes('stand')||t==='blind'||t.includes('tree stand'))return true;
-  return /\b(stand|blind)\b/.test(n);
+  const t=String(p?.type||p?.kind||p?.category||p?.labelType||'').trim().toLowerCase();
+  return t==='stand';
 }
 function name(p,i){return String(p?.name||p?.label||p?.title||p?.location||('Stand '+(i+1))).trim()}
 function collect(){
@@ -44,7 +40,7 @@ function sync(form){
   }
 }
 function run(){forms().forEach(sync);window.BackwoodsAppCore?.initHuntForm?.()}
-window.BackwoodsHuntController={version:2,run,collect};
+window.BackwoodsHuntController={version:3,run,collect};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
 setInterval(run,1500);
 })();
