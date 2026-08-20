@@ -103,3 +103,5 @@ jobs:
           git add V5/index.html
           git commit -m 'Fix Home camera count across camera data sources'
           git push
+
+# retrigger after workflow installation
