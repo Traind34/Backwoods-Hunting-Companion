@@ -797,4 +797,46 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
 <script src="bw-v73-hunt-autofill.js" data-bw-v73="1"></script>
 <script src="bw-v79-hunt-history.js" data-bw-v79="1"></script>
 <script src="bw-v80-recent-activity-stand-names.js" data-bw-v80="1"></script>
+<script id="bw-v80-home-camera-fix">
+(function(){
+  'use strict';
+  const CAMERA_META='bwCameraSlotsV57';
+  function cameraCount(){
+    try{
+      const v=JSON.parse(localStorage.getItem(CAMERA_META)||'[]');
+      return Array.isArray(v)?v.length:0;
+    }catch(e){return 0}
+  }
+  function patchHome(){
+    const home=document.getElementById('home');
+    if(!home)return;
+
+    // The Camera Center is the source of truth for configured cameras.
+    // The old Season Snapshot renderer was reading the legacy camera-check array.
+    home.querySelectorAll('.stat').forEach(stat=>{
+      const label=(stat.querySelector('span')?.textContent||stat.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+      if(label.includes('CAMERA') && label.includes('CHECK')){
+        const value=stat.querySelector('b');
+        if(value)value.textContent=String(cameraCount());
+      }
+    });
+
+    // Target Buck is now property-level only. Remove the Home Quick Action,
+    // including variants rendered by older Home markup.
+    home.querySelectorAll('button,a,.tile').forEach(el=>{
+      const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+      if(text.includes('TARGET BUCK')){
+        const action=el.closest('button')||el;
+        if(action)action.style.display='none';
+      }
+    });
+  }
+  function run(){patchHome()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,50));else setTimeout(run,50);
+  window.addEventListener('backwoods:data-changed',run);
+  window.addEventListener('storage',run);
+  setInterval(run,1000);
+})();
+</script>
+<!-- V8.0 home camera snapshot fix -->
 </body></html>
