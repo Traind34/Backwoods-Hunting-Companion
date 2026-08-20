@@ -21,3 +21,19 @@ window.BackwoodsCanonicalIntelligence={version:1,rank:rank,recommendation:recomm
 window.BackwoodsRecommendation=Object.assign(window.BackwoodsRecommendation||{}, {rank:rank,recommendation:recommendation});
 window.dispatchEvent(new CustomEvent('backwoods:intelligence-ready',{detail:{standCount:window.BackwoodsCanonicalIntelligence.count()}}));
 })();
+
+/* V7.4 property alignment patch */
+(function(){
+  'use strict';
+  if(window.__bwV74Loader)return;
+  window.__bwV74Loader=true;
+  function load(){
+    if(document.querySelector('script[data-bw-v74="1"]'))return;
+    const s=document.createElement('script');
+    s.src='bw-v74-property-alignment.js';
+    s.async=false;
+    s.dataset.bwV74='1';
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
