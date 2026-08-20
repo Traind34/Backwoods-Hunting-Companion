@@ -1,0 +1,80 @@
+name: V8.0 Home camera snapshot fix
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/v80-home-camera-snapshot-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Home snapshot and Target Buck action
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('V5/index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = 'V8.0 home camera snapshot fix'
+          if marker in s:
+              print('V8.0 already present')
+              raise SystemExit(0)
+
+          js = r'''<script id="bw-v80-home-camera-fix">
+          (function(){
+            'use strict';
+            const CAMERA_META='bwCameraSlotsV57';
+            function cameraCount(){
+              try{
+                const v=JSON.parse(localStorage.getItem(CAMERA_META)||'[]');
+                return Array.isArray(v)?v.length:0;
+              }catch(e){return 0}
+            }
+            function patchHome(){
+              const home=document.getElementById('home');
+              if(!home)return;
+
+              // The Camera Center is the source of truth for configured cameras.
+              // The old Season Snapshot renderer was reading the legacy camera-check array.
+              home.querySelectorAll('.stat').forEach(stat=>{
+                const label=(stat.querySelector('span')?.textContent||stat.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+                if(label.includes('CAMERA') && label.includes('CHECK')){
+                  const value=stat.querySelector('b');
+                  if(value)value.textContent=String(cameraCount());
+                }
+              });
+
+              // Target Buck is now property-level only. Remove the Home Quick Action,
+              // including variants rendered by older Home markup.
+              home.querySelectorAll('button,a,.tile').forEach(el=>{
+                const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+                if(text.includes('TARGET BUCK')){
+                  const action=el.closest('button')||el;
+                  if(action)action.style.display='none';
+                }
+              });
+            }
+            function run(){patchHome()}
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,50));else setTimeout(run,50);
+            window.addEventListener('backwoods:data-changed',run);
+            window.addEventListener('storage',run);
+            setInterval(run,1000);
+          })();
+          </script>'''
+
+          pos=s.rfind('</body>')
+          if pos<0: raise SystemExit('No closing body tag')
+          s=s[:pos]+js+'\n<!-- V8.0 home camera snapshot fix -->\n'+s[pos:]
+          p.write_text(s,encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git commit -m 'Fix Home camera count and remove Target Buck action'
+          git push
