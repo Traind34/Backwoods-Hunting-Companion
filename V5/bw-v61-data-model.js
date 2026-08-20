@@ -39,3 +39,12 @@
   window.BackwoodsData={version:VERSION,key:KEY,get,set,add,update,remove,export:exportData,import:importData,migrate,syncLegacyStandPins};
   migrate();
 })();
+
+/* V8: Target Buck is a property-level setting, not a Home shortcut. */
+(function(){
+  'use strict';
+  if(window.__bwV80Loader)return;
+  window.__bwV80Loader=true;
+  function load(){if(document.querySelector('script[data-bw-v80="1"]'))return;const s=document.createElement('script');s.src='bw-v80-target-buck-property-setting.js';s.async=false;s.dataset.bwV80='1';document.head.appendChild(s)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
