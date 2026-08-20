@@ -53,3 +53,19 @@ window.dispatchEvent(new CustomEvent('backwoods:intelligence-ready',{detail:{sta
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
 })();
+
+/* V7.6: restore canonical blue My Property outlines + Hunt Today control position */
+(function(){
+  'use strict';
+  if(window.__bwV76Loader)return;
+  window.__bwV76Loader=true;
+  function load(){
+    if(document.querySelector('script[data-bw-v76="1"]'))return;
+    const s=document.createElement('script');
+    s.src='bw-v76-property-outline-ui.js';
+    s.async=false;
+    s.dataset.bwV76='1';
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
