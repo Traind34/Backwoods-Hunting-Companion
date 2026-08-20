@@ -13,8 +13,10 @@
     if(document.getElementById('bwV514Style'))return;
     const s=document.createElement('style');s.id='bwV514Style';s.textContent=`
       #bwMapViewport .bwParcelPoly{stroke:#fff!important;stroke-width:2.5!important;paint-order:stroke fill;filter:drop-shadow(0 0 1px rgba(0,0,0,.8))}
-      #bwMapViewport .bwSelectedParcel{fill:rgba(108,188,224,.28)!important;stroke:#5aa9d1!important;stroke-width:4!important;paint-order:stroke fill;filter:drop-shadow(0 0 1px rgba(0,0,0,.65))}
-      #bwMapViewport .bwMyPropertyPath{fill:rgba(108,188,224,.38)!important;stroke:#4f9fc9!important;stroke-width:3.5!important;paint-order:stroke fill;vector-effect:non-scaling-stroke;pointer-events:none;filter:drop-shadow(0 0 1px rgba(0,0,0,.55))}
+      /* The canonical property boundary is drawn by the map engine. Parcel selection and the
+         auxiliary My Property overlay must not add a second stroke over that same geometry. */
+      #bwMapViewport .bwSelectedParcel{fill:rgba(108,188,224,.28)!important;stroke:transparent!important;stroke-width:0!important;paint-order:fill;filter:none!important}
+      #bwMapViewport .bwMyPropertyPath{fill:rgba(108,188,224,.38)!important;stroke:transparent!important;stroke-width:0!important;paint-order:fill;vector-effect:non-scaling-stroke;pointer-events:none;filter:none!important}
       #bwHybridControl{display:block!important;margin:0!important;font-weight:800}
       #bwHybridControl input{margin-right:6px}
     `;document.head.appendChild(s)
