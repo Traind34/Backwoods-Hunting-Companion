@@ -37,3 +37,19 @@ window.dispatchEvent(new CustomEvent('backwoods:intelligence-ready',{detail:{sta
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
 })();
+
+/* V7.5: canonical hunt-area parcel alignment */
+(function(){
+  'use strict';
+  if(window.__bwV75Loader)return;
+  window.__bwV75Loader=true;
+  function load(){
+    if(document.querySelector('script[data-bw-v75="1"]'))return;
+    const s=document.createElement('script');
+    s.src='bw-v75-hunt-area-parcel-alignment.js';
+    s.async=false;
+    s.dataset.bwV75='1';
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
