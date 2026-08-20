@@ -891,4 +891,70 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
 })();
 </script>
 <!-- V8.1 home camera snapshot source-of-truth fix -->
+<script id="bw-v82-home-camera-count">
+(function(){
+  'use strict';
+  const SLOT_KEY='bwCameraSlotsV57';
+  const APP_KEY='backwoods-v1';
+  const MAP_KEY='backwoods-planner-map-v5';
+
+  function arr(v){return Array.isArray(v)?v:[]}
+  function readJSON(key){
+    try{return JSON.parse(localStorage.getItem(key)||'null')}catch(e){return null}
+  }
+  function uniqueCameraCount(){
+    const ids=new Set();
+    const slots=readJSON(SLOT_KEY);
+    arr(slots).forEach(x=>{
+      const id=x?.id||x?.cameraId||x?.name;
+      if(id!=null && String(id).trim()) ids.add('slot:'+String(id));
+    });
+
+    const app=readJSON(APP_KEY);
+    if(app && typeof app==='object'){
+      arr(app.cameraInventory).forEach(x=>{
+        const id=x?.id||x?.cameraId||x?.name;
+        if(id!=null && String(id).trim()) ids.add('inventory:'+String(id));
+      });
+      arr(app.cameras).forEach(x=>{
+        const id=x?.id||x?.cameraId||x?.name;
+        if(id!=null && String(id).trim()) ids.add('camera:'+String(id));
+      });
+      arr(app.camera).forEach(x=>{
+        const id=x?.id||x?.cameraId||x?.name;
+        if(id!=null && String(id).trim()) ids.add('check:'+String(id));
+      });
+    }
+
+    const map=readJSON(MAP_KEY);
+    arr(map?.pins).forEach(x=>{
+      if(String(x?.type||'').toLowerCase()==='camera'){
+        const id=x?.id||x?.name||(`${x?.lat},${x?.lng}`);
+        if(id!=null && String(id).trim()) ids.add('map:'+String(id));
+      }
+    });
+    return ids.size;
+  }
+
+  function patch(){
+    const home=document.getElementById('home');
+    if(!home)return;
+    const stat=[...home.querySelectorAll('.stat')].find(x=>/CAMERA/i.test(x.textContent||'') && /CHECK/i.test(x.textContent||''));
+    if(!stat)return;
+    const value=stat.querySelector('b');
+    if(value)value.textContent=String(uniqueCameraCount());
+  }
+
+  function init(){
+    patch();
+    setInterval(patch,1000);
+    window.addEventListener('storage',patch);
+    window.addEventListener('backwoods:data-changed',patch);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)patch()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<!-- V8.2 camera count source-of-truth -->
+
 </body></html>
