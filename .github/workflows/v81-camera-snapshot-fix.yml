@@ -1,0 +1,134 @@
+name: V8.1 camera snapshot source-of-truth fix
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/v81-camera-snapshot-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Home camera snapshot
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('V5/index.html')
+          s = p.read_text(encoding='utf-8')
+          start = s.find('<script id="bw-v80-home-camera-fix">')
+          end_marker = '<!-- V8.0 home camera snapshot fix -->'
+          end = s.find(end_marker, start)
+          if start == -1 or end == -1:
+              raise SystemExit('V8.0 camera snapshot patch not found')
+          end += len(end_marker)
+
+          patch = r'''<script id="bw-v81-home-camera-snapshot-fix">
+          (function(){
+            'use strict';
+            const META='bwCameraSlotsV57';
+            const PHOTO_DB='bwCameraPhotosV57';
+            let lastCount=-1;
+
+            function readSlots(){
+              try{
+                const raw=localStorage.getItem(META);
+                const v=raw?JSON.parse(raw):[];
+                return Array.isArray(v)?v:[];
+              }catch(e){ return []; }
+            }
+
+            async function photoCameraCount(){
+              try{
+                if(!('indexedDB' in window)) return 0;
+                const db=await new Promise((resolve,reject)=>{
+                  const r=indexedDB.open(PHOTO_DB,1);
+                  r.onsuccess=()=>resolve(r.result);
+                  r.onerror=()=>reject(r.error);
+                });
+                const ids=new Set();
+                await new Promise((resolve,reject)=>{
+                  const tx=db.transaction('photos','readonly');
+                  const store=tx.objectStore('photos');
+                  const r=store.openCursor();
+                  r.onsuccess=e=>{const c=e.target.result;if(!c)return resolve();if(c.value?.cameraId)ids.add(String(c.value.cameraId));c.continue()};
+                  r.onerror=()=>reject(r.error);
+                });
+                db.close();
+                return ids.size;
+              }catch(e){ return 0; }
+            }
+
+            async function getCount(){
+              const slots=readSlots().length;
+              const photoCameras=await photoCameraCount();
+              return Math.max(slots,photoCameras);
+            }
+
+            function findCameraStat(){
+              const home=document.getElementById('home');
+              if(!home)return null;
+              return [...home.querySelectorAll('.stat')].find(stat=>{
+                const text=(stat.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+                return text.includes('CAMERA') && text.includes('CHECK');
+              })||null;
+            }
+
+            function removeHomeTargetBuck(){
+              const home=document.getElementById('home');
+              if(!home)return;
+              home.querySelectorAll('button,a,.tile').forEach(el=>{
+                const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+                if(text.includes('TARGET BUCK')) el.style.display='none';
+              });
+            }
+
+            async function patchHome(){
+              const stat=findCameraStat();
+              removeHomeTargetBuck();
+              if(!stat)return;
+              const value=stat.querySelector('b');
+              if(!value)return;
+              const count=await getCount();
+              if(count!==lastCount || value.textContent!==String(count)){
+                value.textContent=String(count);
+                lastCount=count;
+              }
+            }
+
+            function installObserver(){
+              const home=document.getElementById('home');
+              if(!home || home.dataset.bwV81Observer)return;
+              home.dataset.bwV81Observer='1';
+              new MutationObserver(()=>patchHome()).observe(home,{subtree:true,childList:true,characterData:true});
+            }
+
+            function init(){
+              installObserver();
+              patchHome();
+              setInterval(installObserver,500);
+              setInterval(patchHome,1000);
+              window.addEventListener('storage',patchHome);
+              window.addEventListener('backwoods:data-changed',patchHome);
+              document.addEventListener('visibilitychange',()=>{if(!document.hidden)patchHome()});
+            }
+
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+          })();
+          </script>
+          <!-- V8.1 home camera snapshot source-of-truth fix -->'''
+
+          s = s[:start] + patch + s[end:]
+          p.write_text(s,encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix Home camera snapshot source of truth'
+          git push
