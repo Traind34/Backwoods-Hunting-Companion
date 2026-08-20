@@ -11,3 +11,5 @@ The repository has been intentionally restored to the V5.10 baseline. This commi
 ## Deployment target
 
 This repository is intended to be deployed with Vercel using the GitHub repository as the source.
+
+Rollback deployment trigger.
