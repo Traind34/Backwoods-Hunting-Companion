@@ -1,4 +1,4 @@
-name: Backwoods V8.2 Cloud Sync
+name: Backwoods V8.3 Cloud Sync
 on:
   push:
     branches: [main]
@@ -18,12 +18,12 @@ jobs:
           from pathlib import Path
           p=Path('V5/index.html')
           s=p.read_text()
-          tag='<script src="bw-v82-cloud-sync.js"></script>'
+          tag='<script src="bw-v83-cloud-sync.js"></script>'
           if tag not in s:
               marker='</body>'
               if marker not in s:
                   raise SystemExit('index.html has no closing body tag')
-              css='''<style id="bw-v82-cloud-sync-css">#bwCloudSyncPanel{margin-top:16px}.bwSyncCode{font-family:ui-monospace,monospace;letter-spacing:.12em}</style>'''
+              css='''<style id="bw-v83-cloud-sync-css">#bwCloudSyncPanel{margin-top:16px}.bwSyncCode{font-family:ui-monospace,monospace;letter-spacing:.12em}</style>'''
               s=s.replace(marker,css+'\n'+tag+'\n'+marker,1)
               p.write_text(s)
           PY
@@ -32,5 +32,5 @@ jobs:
           git config user.name 'Backwoods Cloud Sync Bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add V5/index.html
-          git diff --cached --quiet || git commit -m 'Load Backwoods cloud sync client'
+          git diff --cached --quiet || git commit -m 'Load safer Backwoods cloud sync client'
           git push
