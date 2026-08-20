@@ -1,0 +1,9 @@
+{
+  "name": "backwoods-hunting-companion",
+  "private": true,
+  "version": "8.2.0",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@vercel/postgres": "^0.10.0"
+  }
+}
