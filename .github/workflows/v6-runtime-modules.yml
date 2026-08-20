@@ -9,6 +9,7 @@ on:
       - 'V5/bw-v67-bootstrap.js'
       - 'V5/bw-v72-canonical-intelligence.js'
       - 'V5/bw-v79-hunt-history.js'
+      - 'V5/bw-v80-recent-activity-stand-names.js'
       - '.github/workflows/v6-runtime-modules.yml'
 
 permissions:
@@ -26,6 +27,7 @@ jobs:
           node --check V5/bw-v67-bootstrap.js
           node --check V5/bw-v72-canonical-intelligence.js
           node --check V5/bw-v79-hunt-history.js
+          node --check V5/bw-v80-recent-activity-stand-names.js
       - name: Load modules in application
         shell: python
         run: |
@@ -36,7 +38,8 @@ jobs:
             '<script src="bw-v65-app-core.js" data-bw-v65="1"></script>',
             '<script src="bw-v66-hunt-controller.js" data-bw-v66="1"></script>',
             '<script src="bw-v72-canonical-intelligence.js" data-bw-v72="1"></script>',
-            '<script src="bw-v79-hunt-history.js" data-bw-v79="1"></script>'
+            '<script src="bw-v79-hunt-history.js" data-bw-v79="1"></script>',
+            '<script src="bw-v80-recent-activity-stand-names.js" data-bw-v80="1"></script>'
           ]
           marker='</body>'
           pos=s.rfind(marker)
@@ -51,4 +54,4 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add V5/index.html
-          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'Load editable Hunt history'; git push; fi
+          if git diff --cached --quiet; then echo 'No changes'; else git commit -m 'Load Recent Activity stand names'; git push; fi
