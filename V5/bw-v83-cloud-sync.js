@@ -2,7 +2,8 @@
   'use strict';
   const KEY='backwoods-cloud-sync-v3';
   const OLD='backwoods-cloud-sync-v2';
-  const DATA_API='https://ep-muddy-block-axi4payo.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1';
+  const DATA_API='https://ep-rapid-leaf-af8dfmo0.apirest.c-2.us-west-2.aws.neon.tech/neondb/rest/v1';
+  const AUTH_URL='https://ep-rapid-leaf-af8dfmo0.neonauth.c-2.us-west-2.aws.neon.tech/neondb/auth';
   const makeKey=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';const b=new Uint8Array(12);crypto.getRandomValues(b);for(const x of b)s+=a[x%a.length];return s.slice(0,6)+'-'+s.slice(6)};
   function state(){try{return JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD)||'{}')}catch(e){return{}}}
   function save(s){localStorage.setItem(KEY,JSON.stringify(s))}
@@ -11,27 +12,15 @@
   function toast(m){if(window.BackwoodsAppCore?.toast)return window.BackwoodsAppCore.toast(m);const t=document.getElementById('toast');if(t){t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}}
   function setData(d){window.BackwoodsData?.set?.(d)}
   let client=null;
-  async function neon(){if(client)return client;const m=await import('https://esm.sh/@neondatabase/neon-js@latest');client=m.createClient({auth:{url:'https://ep-muddy-block-axi4payo.neonauth.c-4.us-east-2.aws.neon.tech/neondb/auth',allowAnonymous:true},dataApi:{url:DATA_API}});return client}
-  async function neonRpc(fn,args){const r=await (await neon()).rpc(fn,args);if(r.error)throw r.error;return r.data||{}}
-  async function apiGet(key){const r=await fetch('/api/sync?syncKey='+encodeURIComponent(key),{cache:'no-store'});if(r.status===404){const e=new Error('SYNC_NOT_FOUND');e.code='SYNC_NOT_FOUND';throw e}if(!r.ok)throw Error('SYNC_API_'+r.status);return r.json()}
-  async function apiPut(key,data,updatedAt){const r=await fetch('/api/sync',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({syncKey:key,data,updatedAt})});if(!r.ok)throw Error('SYNC_API_'+r.status);return r.json()}
-  async function request(fn,args){
-    try{return await neonRpc(fn,args)}
-    catch(neonError){
-      console.warn('Backwoods Neon sync unavailable; using Vercel sync API',neonError);
-      const key=args.p_sync_key;
-      if(fn==='backwoods_sync_get')return await apiGet(key);
-      if(fn==='backwoods_sync_put')return await apiPut(key,args.p_data,args.p_updated_at);
-      throw neonError;
-    }
-  }
+  async function neon(){if(client)return client;const m=await import('https://esm.sh/@neondatabase/neon-js@latest');client=m.createClient({auth:{url:AUTH_URL,allowAnonymous:true},dataApi:{url:DATA_API}});return client}
+  async function request(fn,args){const r=await (await neon()).rpc(fn,args);if(r.error)throw r.error;return r.data||{}}
   function panel(){let p=document.getElementById('bwCloudSyncPanel');if(p)return p;p=document.createElement('section');p.id='bwCloudSyncPanel';p.className='card';p.innerHTML='<h2 style="margin-top:0">Cloud Sync</h2><p id="bwSyncStatus" class="bwmuted">Not connected</p><div id="bwSyncKeyRow" style="display:none;margin:10px 0"><label style="font-weight:800;font-size:12px">Sync code</label><input id="bwSyncKey" autocomplete="off" autocapitalize="characters" inputmode="text" style="width:100%;padding:12px;margin-top:5px;border:1px solid #d7d0c1;border-radius:10px;font:inherit;letter-spacing:.12em"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="bwCreateSync" class="primary">Create Sync Code</button><button id="bwConnectSync">Connect Existing Code</button><button id="bwSyncNow" style="display:none">Sync Now</button></div><p id="bwSyncHelp" class="bwmuted" style="margin-bottom:0">Use the same sync code on Safari and the Home Screen app. Your Backwoods data will be stored in the cloud and kept in sync.</p>';const host=document.querySelector('#more')||document.querySelector('.screen:last-of-type')||document.body;host.appendChild(p);bind(p);return p}
   function render(){const p=panel(),s=state(),status=p.querySelector('#bwSyncStatus'),row=p.querySelector('#bwSyncKeyRow'),input=p.querySelector('#bwSyncKey'),now=p.querySelector('#bwSyncNow');if(s.syncKey){status.textContent='Connected • '+s.syncKey;row.style.display='none';now.style.display='inline-block'}else{status.textContent='Not connected';row.style.display='block';now.style.display='none'}if(input&&s.syncKey)input.value=s.syncKey}
-  async function push(){const s=state(),d=local();if(!s.syncKey||!d)throw Error('NO_SYNC');const at=Date.now();const r=await request('backwoods_sync_put',{p_sync_key:s.syncKey,p_data:d,p_updated_at:at});save({...s,lastSyncAt:Number(r.updatedAt||at)});return r}
+  async function push(){const s=state(),d=local();if(!s.syncKey||!d)throw Error('NO_SYNC');const at=Date.now();const r=await request('backwoods_sync_put',{p_sync_key:s.syncKey,p_data:d,p_updated_at:at});save({...s,lastSyncAt:Number(r.updatedAt||at)});toast('Backwoods data synced to cloud');return r}
   async function pull(){const s=state();if(!s.syncKey)throw Error('NO_SYNC');const r=await request('backwoods_sync_get',{p_sync_key:s.syncKey}),cloud=r.data||null,at=Number(r.updatedAt||0),last=Number(s.lastSyncAt||0),d=local();if(cloud&&meaningful(cloud)){if(!last||at>last){setData(cloud);save({...s,lastSyncAt:at});toast('Backwoods cloud data loaded');setTimeout(()=>location.reload(),250);return}if(last>at&&meaningful(d)){await push();return}}else if(meaningful(d)){await push();return}render()}
   async function connect(key){key=String(key||'').trim().toUpperCase();if(key.length<8)throw Error('INVALID_SYNC_KEY');const r=await request('backwoods_sync_get',{p_sync_key:key}),cloud=r.data||null,at=Number(r.updatedAt||0),d=local();save({syncKey:key,lastSyncAt:at});if(cloud&&meaningful(cloud)){setData(cloud);save({syncKey:key,lastSyncAt:at||Date.now()});toast('Connected — cloud data loaded');setTimeout(()=>location.reload(),250)}else if(meaningful(d)){await push();toast('Connected — this device uploaded its Backwoods data')}else toast('Connected — no data yet');render()}
-  function bind(p){if(p.dataset.v83Bound)return;p.dataset.v83Bound='1';p.querySelector('#bwCreateSync').onclick=async()=>{try{const k=makeKey();save({syncKey:k,lastSyncAt:0});await push();p.querySelector('#bwSyncKey').value=k;render();toast('Sync code created — your Backwoods data is in the cloud')}catch(e){console.error(e);save({});render();toast('Could not create cloud sync')}};p.querySelector('#bwConnectSync').onclick=async()=>{const k=prompt('Enter your Backwoods sync code',p.querySelector('#bwSyncKey').value||'');if(!k)return;try{await connect(k)}catch(e){console.error(e);toast(e.code==='SYNC_NOT_FOUND'||e.message==='SYNC_NOT_FOUND'?'Sync code not found':'Could not connect device')}};p.querySelector('#bwSyncNow').onclick=async()=>{try{await pull()}catch(e){console.error(e);toast('Cloud sync failed')}}}
+  function bind(p){if(p.dataset.v83Bound)return;p.dataset.v83Bound='1';p.querySelector('#bwCreateSync').onclick=async()=>{try{const k=makeKey();save({syncKey:k,lastSyncAt:0});await push();p.querySelector('#bwSyncKey').value=k;render();toast('Sync code created — your Backwoods data is in the cloud')}catch(e){console.error(e);save({});render();toast('Could not create cloud sync')}};p.querySelector('#bwConnectSync').onclick=async()=>{const k=prompt('Enter your Backwoods sync code',p.querySelector('#bwSyncKey').value||'');if(!k)return;try{await connect(k)}catch(e){console.error(e);toast(e.message==='SYNC_NOT_FOUND'?'Sync code not found':'Could not connect device')}};p.querySelector('#bwSyncNow').onclick=async()=>{try{await pull()}catch(e){console.error(e);toast('Cloud sync failed')}}}
   function init(){render();const s=state();if(s.syncKey)setTimeout(()=>pull().catch(e=>console.error('Backwoods auto-sync failed',e)),1000);window.addEventListener('backwoods:data-changed',()=>{if(state().syncKey){clearTimeout(window.__bw83Timer);window.__bw83Timer=setTimeout(()=>push().catch(e=>console.error('Backwoods sync push failed',e)),800)}})}
-  window.BackwoodsCloudSync={version:3,init,push,pull,connect,state};
+  window.BackwoodsCloudSync={version:4,init,push,pull,connect,state};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
