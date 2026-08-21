@@ -797,7 +797,7 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
 <script src="bw-v73-hunt-autofill.js" data-bw-v73="1"></script>
 <script src="bw-v79-hunt-history.js" data-bw-v79="1"></script>
 <script src="bw-v80-recent-activity-stand-names.js" data-bw-v80="1"></script>
-<script id="bw-v81-home-camera-snapshot-fix">
+<script id="bw-v84-home-camera-snapshot-fix">
 (function(){
   'use strict';
   const META='bwCameraSlotsV57';
@@ -812,6 +812,31 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
     }catch(e){ return []; }
   }
 
+  function readBackwoodsCameras(){
+    try{
+      const d=window.BackwoodsData?.get?.();
+      if(!d)return 0;
+      const candidates=[d.cameras,d.cameraSlots,d.cameraChecks,d.cameraRecords];
+      return Math.max(...candidates.map(v=>Array.isArray(v)?v.length:0),0);
+    }catch(e){return 0;}
+  }
+
+  function scanCameraStorage(){
+    let best=0;
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i)||'';
+        if(!/camera|cam/i.test(key) || key===META)continue;
+        try{
+          const v=JSON.parse(localStorage.getItem(key)||'null');
+          if(Array.isArray(v))best=Math.max(best,v.length);
+          else if(v&&Array.isArray(v.cameras))best=Math.max(best,v.cameras.length);
+        }catch(e){}
+      }
+    }catch(e){}
+    return best;
+  }
+
   async function photoCameraCount(){
     try{
       if(!('indexedDB' in window)) return 0;
@@ -821,6 +846,7 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
         r.onerror=()=>reject(r.error);
       });
       const ids=new Set();
+      if(!db.objectStoreNames.contains('photos')){db.close();return 0;}
       await new Promise((resolve,reject)=>{
         const tx=db.transaction('photos','readonly');
         const store=tx.objectStore('photos');
@@ -835,17 +861,19 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
 
   async function getCount(){
     const slots=readSlots().length;
+    const appCameras=readBackwoodsCameras();
+    const storedCameras=scanCameraStorage();
     const photoCameras=await photoCameraCount();
-    return Math.max(slots,photoCameras);
+    return Math.max(slots,appCameras,storedCameras,photoCameras);
   }
 
-  function findCameraStat(){
+  function findCameraStats(){
     const home=document.getElementById('home');
-    if(!home)return null;
-    return [...home.querySelectorAll('.stat')].find(stat=>{
-      const text=(stat.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+    if(!home)return [];
+    return [...home.querySelectorAll('.stat,.tile,.bwcard,.card')].filter(el=>{
+      const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
       return text.includes('CAMERA') && text.includes('CHECK');
-    })||null;
+    });
   }
 
   function removeHomeTargetBuck(){
@@ -853,37 +881,27 @@ setTimeout(()=>window.bwRefreshPropertySummary&&window.bwRefreshPropertySummary(
     if(!home)return;
     home.querySelectorAll('button,a,.tile').forEach(el=>{
       const text=(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
-      if(text.includes('TARGET BUCK')) el.style.display='none';
+      if(text.includes('TARGET BUCK'))el.style.display='none';
     });
   }
 
   async function patchHome(){
-    const stat=findCameraStat();
     removeHomeTargetBuck();
-    if(!stat)return;
-    const value=stat.querySelector('b');
-    if(!value)return;
+    const stats=findCameraStats();
+    if(!stats.length)return;
     const count=await getCount();
-    if(count!==lastCount || value.textContent!==String(count)){
-      value.textContent=String(count);
-      lastCount=count;
-    }
-  }
-
-  function installObserver(){
-    const home=document.getElementById('home');
-    if(!home || home.dataset.bwV81Observer)return;
-    home.dataset.bwV81Observer='1';
-    new MutationObserver(()=>patchHome()).observe(home,{subtree:true,childList:true,characterData:true});
+    stats.forEach(stat=>{
+      const value=stat.querySelector('b');
+      if(value)value.textContent=String(count);
+    });
+    lastCount=count;
   }
 
   function init(){
-    installObserver();
     patchHome();
-    setInterval(installObserver,500);
     setInterval(patchHome,1000);
-    window.addEventListener('storage',patchHome);
-    window.addEventListener('backwoods:data-changed',patchHome);
+    window.addEventListener('storage',()=>patchHome());
+    window.addEventListener('backwoods:data-changed',()=>patchHome());
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)patchHome()});
   }
 
