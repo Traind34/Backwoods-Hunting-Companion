@@ -1,0 +1,38 @@
+name: V8.7 clickable camera checks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'V5/bw-v87-camera-checks-ui.js'
+      - '.github/workflows/v87-camera-checks-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Load camera checks UI
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('V5/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="bw-v87-camera-checks-ui.js" data-bw-v87-camera-checks="1"></script>'
+          if tag not in s:
+              pos=s.rfind('</body>')
+              if pos == -1:
+                  raise SystemExit('No closing body tag')
+              s=s[:pos]+tag+'\n'+s[pos:]
+              p.write_text(s,encoding='utf-8')
+      - name: Commit app patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add V5/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Make Camera Checks card clickable'
+          git push
