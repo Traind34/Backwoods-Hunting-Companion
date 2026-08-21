@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Load camera checks UI
+      - name: Load camera checks UI and remove duplicate camera form
         shell: python
         run: |
           from pathlib import Path
@@ -27,12 +27,24 @@ jobs:
               if pos == -1:
                   raise SystemExit('No closing body tag')
               s=s[:pos]+tag+'\n'+s[pos:]
-              p.write_text(s,encoding='utf-8')
+
+          # V5.7 is now the single authoritative Camera Center. The older V5.9
+          # helper was injecting a second Camera Center whenever it saw #camera.
+          p59=Path('V5/bw-v59-hybrid-parcels.js')
+          if p59.exists():
+              t=p59.read_text(encoding='utf-8')
+              old="function build(){const section=$('camera');if(!section||$('bwCameraCenter'))return;"
+              new="function build(){const section=$('camera');if(!section||$('bwCameraCenter')||section.querySelector('#bwCameraForm'))return;"
+              if old in t:
+                  t=t.replace(old,new,1)
+                  p59.write_text(t,encoding='utf-8')
+
+          p.write_text(s,encoding='utf-8')
       - name: Commit app patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add V5/index.html
+          git add V5/index.html V5/bw-v59-hybrid-parcels.js
           git diff --cached --quiet && exit 0
-          git commit -m 'Make Camera Checks card clickable'
+          git commit -m 'Use single Camera Center form'
           git push
