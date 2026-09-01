@@ -23,7 +23,8 @@ struct ContentView: View {
                         .keyboardType(.numberPad)
 
                     Button(draft.isRunning ? "Live Activity Running" : "Start Draft Assistant") {
-                        draft.start()
+                        guard let slot = Int(draftSlot), (1...12).contains(slot), !leagueID.isEmpty else { return }
+                        draft.start(leagueId: leagueID, slot: slot)
                     }
                     .disabled(draft.isRunning)
 
@@ -33,13 +34,17 @@ struct ContentView: View {
                     .disabled(!draft.isRunning)
                 }
 
+                Section("Connection") {
+                    Label(draft.registrationStatus, systemImage: draft.isRunning ? "antenna.radiowaves.left.and.right" : "circle")
+                }
+
                 Section("Current recommendation") {
                     Text(draft.lastPlayer)
                         .font(.headline)
                 }
 
                 Section {
-                    Text("ESPN authentication is intentionally not collected here. The app will use the Backwoods server-side draft feed once private-league authentication is configured securely.")
+                    Text("ESPN authentication is intentionally not collected here. The Backwoods server uses server-side ESPN credentials; never enter an ESPN password or session cookie into this app.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
