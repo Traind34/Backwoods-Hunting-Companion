@@ -1,0 +1,33 @@
+name: BlossBrusierLiveDraft
+options:
+  bundleIdPrefix: com.backwoodsplanning
+  deploymentTarget:
+    iOS: "16.1"
+targets:
+  BlossBrusierLiveDraft:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        excludes:
+          - "README.md"
+          - "project.yml"
+          - "BlossBrusierLiveActivity.swift"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.backwoodsplanning.blossbrusier
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        SWIFT_VERSION: 5.0
+    dependencies:
+      - target: BlossBrusierLiveActivity
+  BlossBrusierLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: BlossBrusierAttributes.swift
+      - path: BlossBrusierLiveActivity.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.backwoodsplanning.blossbrusier.liveactivity
+        INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        SWIFT_VERSION: 5.0
