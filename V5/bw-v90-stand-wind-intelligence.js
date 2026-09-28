@@ -70,6 +70,7 @@ function scoreWind(stand,state){
  const profile=stand.idealWind?.directions||[];
  return {...matchScore(actual,profile),actual,ideal:profile};
 }
+function labelWindow(w){const fmt=h=>{h=((h%24)+24)%24;const ap=h>=12?'PM':'AM',x=Math.round(h)%12||12;return x+' '+ap};return fmt(w.start)+' – '+fmt(w.end)}
 function renderModal(stand,state){
  let root=document.getElementById('bwStandWindModal');
  if(!root){
@@ -85,9 +86,9 @@ function renderModal(stand,state){
  const src=(profile.sources||[]).map(x=>'<span class="bwSWTag">'+esc(x.type)+' • '+esc(x.dist.toFixed(2))+' mi • '+esc(x.dir)+'</span>').join('');
  const hi=window.BackwoodsHuntIntelligence?.report?window.BackwoodsHuntIntelligence.report(stand,state):null;
  const windows=hi?.movementWindows||[];
- const timing=windows.length?'<div class="bwSWGrid"><div><small>BEST MOVEMENT WINDOW</small><b>'+esc(String(Math.round(windows[0].start*60/5)*5).padStart(4,'0').replace(/(..)$/,' : $1'))+'</b></div><div><small>HUNT INTELLIGENCE</small><b>'+esc((hi.scoreImpact>=0?'+':'')+hi.scoreImpact+' pts')}</b></div></div>':'';
+ const timing=windows.length?'<div class="bwSWGrid"><div><small>BEST MOVEMENT WINDOW</small><b>'+labelWindow(windows[0])+'</b></div><div><small>HUNT INTELLIGENCE</small><b>'+esc((hi.scoreImpact>=0?'+':'')+hi.scoreImpact+' pts')}</b></div></div>':'';
  const access=hi?'<div class="bwSWReason"><b>Entry & movement intelligence</b><ul><li>'+esc(hi.access.reasons.join('; ')||'No structured access-route evidence yet.')+'</li><li>'+esc(hi.thermal.label+' • '+(hi.thermal.points>=0?'+':'')+hi.thermal.points+' points')+'</li></ul></div>':'';
- root.querySelector('#bwSWBody').innerHTML='<div class="bwSWEyebrow">BACKWOODS WIND INTELLIGENCE</div><h2>'+esc(stand.name||'Stand')+'</h2><p class="bwSWLead">Recommended wind <b>FROM '+esc(profile.directions.join(' • ')||'SET MANUALLY')+'</b></p><div class="bwSWCompass">'+DIRS.map(d=>'<span class="'+(profile.directions.includes(d)?'active':'')+'">'+d+'</span>').join('')+'</div><div class="bwSWGrid"><div><small>CURRENT WIND</small><b>'+esc(actual||'Unavailable')+'</b></div><div><small>STAND STATUS</small><b>'+esc(match.label)+'</b></div></div>timing<div class="bwSWReason"><b>Why these winds?</b><ul>'+((profile.notes||[]).map(x=>'<li>'+esc(x)+'</li>').join('')||'<li>Based on the stand profile and mapped deer-movement features.</li>')+'</ul></div>'+(src?'<div class="bwSWSources"><b>Nearby mapped factors</b><div>'+src+'</div></div>':'')+'<button class="bwSWEdit" type="button">Adjust ideal winds</button>';
+ root.querySelector('#bwSWBody').innerHTML='<div class="bwSWEyebrow">BACKWOODS WIND INTELLIGENCE</div><h2>'+esc(stand.name||'Stand')+'</h2><p class="bwSWLead">Recommended wind <b>FROM '+esc(profile.directions.join(' • ')||'SET MANUALLY')+'</b></p><div class="bwSWCompass">'+DIRS.map(d=>'<span class="'+(profile.directions.includes(d)?'active':'')+'">'+d+'</span>').join('')+'</div><div class="bwSWGrid"><div><small>CURRENT WIND</small><b>'+esc(actual||'Unavailable')+'</b></div><div><small>STAND STATUS</small><b>'+esc(match.label)+'</b></div></div>'+timing+ '<div class="bwSWReason"><b>Why these winds?</b><ul>'+((profile.notes||[]).map(x=>'<li>'+esc(x)+'</li>').join('')||'<li>Based on the stand profile and mapped deer-movement features.</li>')+'</ul></div>'+(src?'<div class="bwSWSources"><b>Nearby mapped factors</b><div>'+src+'</div></div>':'')+access+'<button class="bwSWEdit" type="button">Adjust ideal winds</button>';
  root.querySelector('.bwSWEdit').onclick=()=>editStand(stand);
  root.hidden=false;
 }
