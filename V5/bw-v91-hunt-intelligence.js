@@ -57,7 +57,7 @@ function evaluate(stand,state){
  const movement=movementProfile(stand,state);
  const access=accessScore(stand,state,wind.actual);
  const thermal=thermalScore(stand,state,wind.actual);
- const total=clamp(wind.points+access.points+thermal.points, -20, 30);
+ const total=clamp(access.points+thermal.points, -12, 12);
  const reasons=[];
  if(wind.label)reasons.push(wind.label);
  reasons.push(...access.reasons);
@@ -66,10 +66,10 @@ function evaluate(stand,state){
  return {points:total,wind,movement,access,thermal,reasons};
 }
 
+const ORIGINAL_RANK=window.BackwoodsRecommendation?.rank;
 function rank(state){
- const base=window.BackwoodsRecommendation?.rank;
- if(!base)return [];
- const existing=base.__bwHuntBase?base(state):base(state);
+ if(!ORIGINAL_RANK)return [];
+ const existing=ORIGINAL_RANK(state);
  return existing.map(x=>{
    const e=evaluate(x.stand,state);
    return {...x,huntIntelligence:e,score:clamp(Math.round(x.score+e.points),0,100),reasons:[...(x.reasons||[]),...e.reasons],factors:[...(x.factors||[]),{name:'hunt timing / access / thermals',points:e.points}]};
