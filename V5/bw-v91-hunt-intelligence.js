@@ -82,6 +82,7 @@ function report(stand,state){
  return {stand:stand.name||'Stand',scoreImpact:e.points,idealWinds:e.wind.ideal,currentWind:e.wind.actual,currentWindStatus:e.wind.label,movementWindows:e.movement.windows,access:e.access,thermal:e.thermal,primaryWindow:best||null};
 }
 
+if(window.BackwoodsRecommendation?.rank){const base=window.BackwoodsRecommendation.rank;base.__bwHuntBase=true;window.BackwoodsRecommendation.rank=function(state){const ranked=rank(state);return ranked};}
 window.BackwoodsHuntIntelligence={version:1,evaluate,rank,report,movementProfile};
 window.dispatchEvent(new CustomEvent('backwoods:hunt-intelligence-ready'));
 })();
